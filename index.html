@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PE จำนวนไม่สัมพันธ์กับนัด - โรงพยาบาลอุตรดิตถ์</title>
-     <link rel="icon" href="icons/icon-192x192.png" type="image/png" />
+    <title>ระบบเก็บข้อมูล Med Error - โรงพยาบาลอุตรดิตถ์</title>
+
     <!-- PWA Manifest & Icons -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3b82f6">
-    <link rel="apple-touch-icon" href="https://placehold.co/180x180/3B82F6/FFFFFF?text=ME">
+    <link rel="apple-touch-icon" href="icons/icon-180x180.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -82,17 +82,31 @@
         }
 
         /* --- SCANNER STYLES --- */
+        #scanner-container {
+            position: relative;
+            overflow: hidden; /* Hide overflow to keep rounded corners */
+            border-radius: 0.5rem;
+        }
         #scanner-container video, #scanner-container canvas {
             width: 100%;
             height: auto;
-            border-radius: 0.5rem;
         }
         #scanner-container canvas.drawingBuffer {
             position: absolute;
             top: 0;
             left: 0;
         }
-
+        .scanner-laser {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            right: 0;
+            height: 2px;
+            background-color: red;
+            box-shadow: 0 0 5px red;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-full thai-font">
@@ -221,29 +235,41 @@
              document.getElementById('reportPage').innerHTML = `<div class="space-y-6"><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800 mb-4 sm:mb-0">🔍 กรองข้อมูล</h2><button onclick="fetchDataFromSheet()" class="w-full sm:w-auto bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.899 2.186l-2.003.812a5.002 5.002 0 00-8.224-2.223L8 10l-4 4 4 4-1.774-1.774a7.002 7.002 0 01-2.186-11.899V3a1 1 0 01-1-1z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M15.999 11.232a5.002 5.002 0 00-8.224 2.223L6 10l4-4-4-4 1.774 1.774a7.002 7.002 0 0110.125 10.125L18 10l-2.001-1.232z" clip-rule="evenodd" /></svg><span>รีเฟรชข้อมูล</span></button></div><div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"><div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label><input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${weekAgo}"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label><input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${today}"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">ประเภท Error</label><select id="errorTypeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${errorTypeOptions}</select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">คลินิก</label><select id="clinicFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${clinicOptions}</select></div><div><button onclick="filterData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">🔍 กรอง</button></div></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📊</div><div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div><div class="text-gray-600">จำนวนรวม</div></div><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📅</div><div class="text-2xl font-bold text-green-600" id="todayErrors">0</div><div class="text-gray-600">วันนี้</div></div><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📈</div><div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div><div class="text-gray-600">เฉลี่ยต่อวัน</div></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📈 กราฟรายวัน</h3><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">📥 Export Excel</button></div><div class="h-80"><canvas id="errorChart"></canvas></div></div><div class="bg-white rounded-xl shadow-lg p-6"><h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">📊 สัดส่วนประเภท Error</h3><div class="h-80 w-full max-w-md mx-auto"><canvas id="pieChart"></canvas></div></div></div><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📋 ตารางข้อมูลรายละเอียด</h3><div class="flex items-center space-x-2"><button id="prevDataBtn" onclick="prevDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button><span id="dataPageIndicator" class="text-sm text-gray-600 font-medium w-20 text-center"></span><button id="nextDataBtn" onclick="nextDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button></div></div><div class="overflow-x-auto"><table class="min-w-full table-auto"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ลำดับ</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HN</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ประเภท</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">คลินิก</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เวลา</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">จัดการ</th></tr></thead><tbody id="dataTable" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div>`;
         }
         
-        // --- SCANNER FUNCTION ---
+        // --- SCANNER FUNCTION (IMPROVED) ---
         function startScanner() {
             Swal.fire({
                 title: 'สแกนบาร์โค้ด HN',
-                html: `<div id="scanner-container" class="relative w-full h-auto"></div><p class="mt-2 text-sm text-gray-600">กรุณาหันกล้องไปที่บาร์โค้ด</p>`,
+                html: `
+                    <div id="scanner-container">
+                        <div class="scanner-laser"></div>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-600">จัดตำแหน่งบาร์โค้ดให้อยู่ในกรอบ</p>`,
                 showConfirmButton: false,
                 showCancelButton: true,
                 cancelButtonText: 'ยกเลิก',
                 didOpen: () => {
+                    const scannerContainer = document.querySelector('#scanner-container');
                     Quagga.init({
                         inputStream: {
                             name: "Live",
                             type: "LiveStream",
-                            target: document.querySelector('#scanner-container'),
+                            target: scannerContainer,
                             constraints: {
-                                width: 480,
-                                height: 320,
-                                facingMode: "environment" // rear camera
+                                width: 640,
+                                height: 480,
+                                facingMode: "environment"
                             },
                         },
-                        decoder: {
-                             readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "codabar_reader"]
+                        locator: {
+                            patchSize: "medium",
+                            halfSample: true
                         },
+                        numOfWorkers: navigator.hardwareConcurrency || 4,
+                        decoder: {
+                             readers: ["code_128_reader", "code_39_reader"],
+                             multiple: false // Stop after first detection
+                        },
+                        locate: true
                     }, (err) => {
                         if (err) {
                             console.error(err);
@@ -253,12 +279,41 @@
                         Quagga.start();
                     });
 
+                    Quagga.onProcessed((result) => {
+                        const drawingCtx = Quagga.canvas.ctx.overlay;
+                        const drawingCanvas = Quagga.canvas.dom.overlay;
+                        drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
+                        if (result && result.boxes) {
+                            result.boxes.filter(box => box !== result.box).forEach(box => {
+                                Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: "green", lineWidth: 2});
+                            });
+                        }
+                        if (result && result.box) {
+                            Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: "#00F", lineWidth: 2});
+                        }
+                        if (result && result.codeResult && result.codeResult.code) {
+                            Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: 'red', lineWidth: 3});
+                        }
+                    });
+
                     Quagga.onDetected((result) => {
                         const code = result.codeResult.code;
-                        document.getElementById('hnInput').value = code;
                         Quagga.stop();
-                        Swal.close();
-                        showNotification(`สแกน HN สำเร็จ: ${code}`, 'success');
+                        Swal.fire({
+                            title: 'สแกนสำเร็จ',
+                            text: `หมายเลข HN ที่ได้คือ: ${code}`,
+                            icon: 'success',
+                            showCancelButton: true,
+                            confirmButtonText: 'ยืนยัน',
+                            cancelButtonText: 'สแกนใหม่'
+                        }).then((result) => {
+                             if(result.isConfirmed) {
+                                document.getElementById('hnInput').value = code;
+                                showNotification(`บันทึก HN: ${code}`, 'success');
+                             } else {
+                                startScanner(); // Re-open scanner if user clicks "สแกนใหม่"
+                             }
+                        });
                     });
                 },
                 willClose: () => {
