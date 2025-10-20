@@ -300,6 +300,7 @@
             });
         }
         
+        // OPTIMISTIC UI SAVE
         function saveError(hn, errorType) {
             Swal.close();
             const now = new Date();
@@ -310,19 +311,38 @@
                 time: now.toLocaleTimeString('th-TH')
             };
 
-            showNotification('กำลังตรวจสอบและบันทึก...', 'info');
+            // --- 1. Optimistic Update ---
+            medErrorData.unshift(record);
+            recentRecordsPage = 0;
+            updateUIAfterFetch();
+            document.getElementById('hnInput').value = '';
+            document.getElementById('hnInput').focus();
+            showNotification('บันทึกข้อมูลสำเร็จ', 'success');
+
+            // --- 2. Background Sync ---
             sendToGoogleSheets('addRecord', record).then(result => {
                 if (result && result.status === 'success') {
-                    showNotification('บันทึกข้อมูลสำเร็จ', 'success');
-                    fetchDataFromSheet(); // Refresh data from sheet to get the latest
-                } else if (result && result.status === 'duplicate') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'ข้อมูลซ้ำ',
-                        text: `พบข้อมูล Error ประเภทนี้ของ HN: ${hn} ในวันนี้แล้ว`,
-                    });
+                    console.log('Background sync successful.');
+                    // Optionally, trigger a silent fetch to get other users' updates
+                    // fetchDataFromSheet(); 
+                } else {
+                    // --- 3. Rollback on Failure ---
+                    console.error("Background sync failed. Rolling back UI.", result);
+
+                    if (result && result.status === 'duplicate') {
+                        Swal.fire({
+                            icon: 'warning', title: 'ข้อมูลซ้ำ',
+                            text: `พบข้อมูล Error ประเภทนี้ของ HN: ${hn} ในวันนี้แล้ว (อาจบันทึกโดยผู้ใช้อื่น)`,
+                        });
+                    } else {
+                        showNotification('การบันทึกข้อมูลล้มเหลว', 'error');
+                    }
+
+                    // Remove the optimistically added record
+                    medErrorData = medErrorData.filter(r => r.id !== record.id);
+                    // Re-render the UI
+                    updateUIAfterFetch();
                 }
-                // No else needed, sendToGoogleSheets handles generic errors
             });
         }
         
@@ -572,7 +592,7 @@
                 const response = await fetch(scriptURL, { method: 'POST', body: formData });
                 // The return value needs to be parsed as JSON to be used.
                 const result = await response.json(); 
-                if (result.status !== 'success') {
+                if (result.status !== 'success' && result.status !== 'duplicate') { // Allow 'duplicate' status
                     showNotification(result.message || 'เกิดข้อผิดพลาดกับ Google Sheets', 'error');
                     console.error('Google Sheets Error:', result.message);
                     return result;
