@@ -111,12 +111,19 @@
         let medErrorData = [];
         let chart = null;
         let isSyncing = false;
+        
+        // Pagination state
         let recentRecordsPage = 0;
         const RECENT_ITEMS_PER_PAGE = 10;
+        let dataTablePage = 0;
+        const DATA_TABLE_ITEMS_PER_PAGE = 20;
+        let currentFilteredData = [];
+
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', async function() {
             medErrorData = JSON.parse(localStorage.getItem('medErrorData')) || [];
+            currentFilteredData = [...medErrorData];
             showPage('record'); 
             await fetchDataFromSheet(); 
         });
@@ -252,9 +259,9 @@
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                         <div class="lg:col-span-2 space-y-6">
-                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📊</div><div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div><div class="text-gray-600">จำนวนรวม (ที่กรอง)</div></div>
-                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📅</div><div class="text-2xl font-bold text-green-600" id="todayErrors">0</div><div class="text-gray-600">วันนี้ (ที่กรอง)</div></div>
-                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📈</div><div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div><div class="text-gray-600">เฉลี่ยต่อวัน (ที่กรอง)</div></div>
+                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📊</div><div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div><div class="text-gray-600">จำนวนรวม</div></div>
+                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📅</div><div class="text-2xl font-bold text-green-600" id="todayErrors">0</div><div class="text-gray-600">วันนี้</div></div>
+                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📈</div><div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div><div class="text-gray-600">เฉลี่ยต่อวัน</div></div>
                         </div>
                         <div class="bg-white rounded-xl shadow-lg p-6 lg:col-span-3">
                              <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📈 กราฟแสดงจำนวน Med Error รายวัน</h3><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">📥 Export Excel</button></div>
@@ -262,7 +269,18 @@
                         </div>
                     </div>
                     <div class="bg-white rounded-xl shadow-lg p-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 ตารางข้อมูลรายละเอียด</h3>
+                        <div class="flex justify-between items-center mb-4">
+                             <h3 class="text-lg font-semibold text-gray-800">📋 ตารางข้อมูลรายละเอียด</h3>
+                             <div class="flex items-center space-x-2">
+                                 <button id="prevDataBtn" onclick="prevDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                     <svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                 </button>
+                                 <span id="dataPageIndicator" class="text-sm text-gray-600 font-medium w-20 text-center"></span>
+                                 <button id="nextDataBtn" onclick="nextDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                     <svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                 </button>
+                             </div>
+                         </div>
                         <div class="overflow-x-auto"><table class="min-w-full table-auto"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HN</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ประเภท</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เวลา</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th></tr></thead><tbody id="dataTable" class="bg-white divide-y divide-gray-200"></tbody></table></div>
                     </div>
                 </div>`;
@@ -291,14 +309,20 @@
                 date: now.toLocaleDateString('th-TH'),
                 time: now.toLocaleTimeString('th-TH')
             };
-            medErrorData.unshift(record);
-            recentRecordsPage = 0; // Reset to first page
-            updateRecentRecords();
-            document.getElementById('hnInput').value = '';
-            document.getElementById('hnInput').focus();
-            showNotification('กำลังบันทึกข้อมูล...', 'info');
-            sendToGoogleSheets('addRecord', record).then(success => {
-                if (success) { showNotification('บันทึกข้อมูลสำเร็จ', 'success'); fetchDataFromSheet(); }
+
+            showNotification('กำลังตรวจสอบและบันทึก...', 'info');
+            sendToGoogleSheets('addRecord', record).then(result => {
+                if (result && result.status === 'success') {
+                    showNotification('บันทึกข้อมูลสำเร็จ', 'success');
+                    fetchDataFromSheet(); // Refresh data from sheet to get the latest
+                } else if (result && result.status === 'duplicate') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ข้อมูลซ้ำ',
+                        text: `พบข้อมูล Error ประเภทนี้ของ HN: ${hn} ในวันนี้แล้ว`,
+                    });
+                }
+                // No else needed, sendToGoogleSheets handles generic errors
             });
         }
         
@@ -416,7 +440,11 @@
                 </div>`).join('');
         }
 
-        function loadReportData() { filterData(); }
+        function loadReportData() { 
+            dataTablePage = 0;
+            filterData(); 
+        }
+
         function filterData() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
@@ -428,10 +456,30 @@
                 filtered = filtered.filter(r => new Date(r.timestamp) >= start && new Date(r.timestamp) <= end);
             }
             if (errorType !== 'all') { filtered = filtered.filter(r => r.errorType === errorType); }
-            updateSummaryCards(filtered);
-            updateChart(filtered);
-            updateDataTable(filtered);
+            
+            currentFilteredData = filtered;
+            dataTablePage = 0; // Reset page to 0 whenever filters change
+            
+            updateSummaryCards(currentFilteredData);
+            updateChart(currentFilteredData);
+            updateDataTable();
         }
+
+        function prevDataPage() {
+            if (dataTablePage > 0) {
+                dataTablePage--;
+                updateDataTable();
+            }
+        }
+
+        function nextDataPage() {
+            const totalPages = Math.ceil(currentFilteredData.length / DATA_TABLE_ITEMS_PER_PAGE);
+            if (dataTablePage < totalPages - 1) {
+                dataTablePage++;
+                updateDataTable();
+            }
+        }
+
 
         function updateSummaryCards(data) {
             document.getElementById('totalErrors').textContent = data.length;
@@ -460,16 +508,38 @@
             });
         }
 
-        function updateDataTable(data) {
+        function updateDataTable() {
             const tableBody = document.getElementById('dataTable');
             if (!tableBody) return;
-            if (data.length === 0) {
+            
+            const totalItems = currentFilteredData.length;
+            const totalPages = Math.ceil(totalItems / DATA_TABLE_ITEMS_PER_PAGE) || 1;
+
+            if (dataTablePage >= totalPages) {
+                dataTablePage = totalPages - 1;
+            }
+
+            const start = dataTablePage * DATA_TABLE_ITEMS_PER_PAGE;
+            const end = start + DATA_TABLE_ITEMS_PER_PAGE;
+            const pageItems = currentFilteredData.slice(start, end);
+
+            const pageIndicator = document.getElementById('dataPageIndicator');
+            const prevBtn = document.getElementById('prevDataBtn');
+            const nextBtn = document.getElementById('nextDataBtn');
+
+            if(pageIndicator) pageIndicator.textContent = totalItems > 0 ? `หน้า ${dataTablePage + 1} / ${totalPages}` : 'ไม่มีข้อมูล';
+            if(prevBtn) prevBtn.disabled = dataTablePage === 0;
+            if(nextBtn) nextBtn.disabled = dataTablePage >= totalPages - 1;
+            
+
+            if (pageItems.length === 0) {
                 tableBody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">ไม่มีข้อมูลในช่วงเวลาที่เลือก</td></tr>`;
                 return;
             }
-            tableBody.innerHTML = data.map((r, index) => `
+            
+            tableBody.innerHTML = pageItems.map((r, index) => `
                 <tr class="hover:bg-gray-50">
-                    <td class="px-4 py-4 text-sm text-gray-900">${index + 1}</td>
+                    <td class="px-4 py-4 text-sm text-gray-900">${start + index + 1}</td>
                     <td class="px-4 py-4 text-sm font-medium text-gray-900">${r.hn}</td>
                     <td class="px-4 py-4 text-sm text-blue-800">${r.errorType}</td>
                     <td class="px-4 py-4 text-sm text-gray-900">${r.date}</td>
@@ -500,18 +570,21 @@
             formData.append('data', JSON.stringify(data));
             try {
                 const response = await fetch(scriptURL, { method: 'POST', body: formData });
-                const result = await response.json();
+                // The return value needs to be parsed as JSON to be used.
+                const result = await response.json(); 
                 if (result.status !== 'success') {
-                    showNotification('เกิดข้อผิดพลาดกับ Google Sheets', 'error');
+                    showNotification(result.message || 'เกิดข้อผิดพลาดกับ Google Sheets', 'error');
                     console.error('Google Sheets Error:', result.message);
-                    return false;
-                } return true;
+                    return result;
+                }
+                return result;
             } catch (error) {
                 showNotification('ไม่สามารถเชื่อมต่อ Google Sheets ได้', 'error');
                 console.error('Fetch Error:', error);
-                return false;
+                return { status: 'error', message: error.message };
             }
         }
+
         function exportToExcel() {
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
