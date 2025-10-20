@@ -1,10 +1,14 @@
 const CACHE_NAME = 'med-error-cache-v1';
 const urlsToCache = [
   '/',
-  'index.html'
+  'index.html',
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/chart.js',
+  'https://cdn.jsdelivr.net/npm/sweetalert2@11',
+  'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0',
+  'https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js'
 ];
 
-// Install a service worker
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -15,12 +19,10 @@ self.addEventListener('install', event => {
   );
 });
 
-// Cache and return requests
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
         if (response) {
           return response;
         }
@@ -30,7 +32,6 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// Update a service worker
 self.addEventListener('activate', event => {
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(

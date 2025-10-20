@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเก็บข้อมูล Med Error - โรงพยาบาลอุตรดิตถ์</title>
-
+    <title>PE จำนวนไม่สัมพันธ์กับนัด - โรงพยาบาลอุตรดิตถ์</title>
+     <link rel="icon" href="icons/icon-192x192.png" type="image/png" />
     <!-- PWA Manifest & Icons -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3b82f6">
@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <style>
         body { box-sizing: border-box; }
         .thai-font { font-family: 'Sarabun', 'Noto Sans Thai', sans-serif; }
@@ -38,16 +39,16 @@
         .clinic-search-container { position: relative; width: 100%; }
         
         #clinic-search-input { /* Target the specific input */
-             padding: 0.75rem 1rem !important; /* Tailwind p-3 */
-             border: 1px solid #d1d5db !important; /* Tailwind border-gray-300 */
-             border-radius: 0.5rem !important; /* Tailwind rounded-lg */
+             padding: 0.75rem 1rem !important;
+             border: 1px solid #d1d5db !important;
+             border-radius: 0.5rem !important;
              box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
              width: 100%;
              transition: border-color 0.2s, box-shadow 0.2s;
         }
         #clinic-search-input:focus {
              outline: none;
-             border-color: #3b82f6 !important; /* Tailwind focus:border-blue-500 */
+             border-color: #3b82f6 !important;
              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3) !important;
         }
 
@@ -55,29 +56,41 @@
             position: absolute; top: 100%; left: 0; right: 0; 
             z-index: 9999; 
             background: white; 
-            border: 1px solid #e5e7eb; /* Tailwind border-gray-200 */
+            border: 1px solid #e5e7eb;
             border-top: none;
-            border-radius: 0 0 0.5rem 0.5rem; /* Tailwind rounded-b-lg */
-            margin-top: 2px; /* Small gap from input */
-            max-height: 130px; /* Adjusted to show ~3 items */
+            border-radius: 0 0 0.5rem 0.5rem;
+            margin-top: 2px;
+            max-height: 130px;
             overflow-y: auto;
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); /* Tailwind shadow-lg */
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
         .clinic-dropdown-item {
-            padding: 0.8rem 1rem; /* More padding */
+            padding: 0.8rem 1rem;
             cursor: pointer;
             transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
             font-size: 1rem;
         }
         .clinic-dropdown-item:hover, .clinic-dropdown-item.highlighted { 
-            background-color: #eef2ff; /* Tailwind bg-indigo-50 */
-            color: #4338ca; /* Tailwind text-indigo-700 */
+            background-color: #eef2ff;
+            color: #4338ca;
             font-weight: 500;
         }
         .clinic-dropdown-empty {
              padding: 0.8rem 1rem;
-             color: #6b7280; /* Tailwind text-gray-500 */
+             color: #6b7280;
              text-align: center;
+        }
+
+        /* --- SCANNER STYLES --- */
+        #scanner-container video, #scanner-container canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+        }
+        #scanner-container canvas.drawingBuffer {
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
     </style>
@@ -101,6 +114,7 @@
     <footer class="text-center py-4"><p id="syncStatus" class="text-xs text-gray-500">กำลังเชื่อมต่อ...</p></footer>
 
     <script>
+        // --- PWA Service Worker Registration ---
         if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg failed: ', err)); }); }
 
         const scriptURL = 'https://script.google.com/macros/s/AKfycbx3Gry5fMrN2QIlGBkWtpE3a2URRXL9cCX4fU2HU7w5FvAVDFDKfQZkbGAGtFLK74zk/exec'; 
@@ -110,7 +124,7 @@
         let chart = null, pieChart = null, isSyncing = false;
         let recentRecordsPage = 0, dataTablePage = 0, currentFilteredData = [];
         const RECENT_ITEMS_PER_PAGE = 10, DATA_TABLE_ITEMS_PER_PAGE = 20;
-        let highlightedIndex = -1; // For keyboard navigation
+        let highlightedIndex = -1; 
 
         Chart.register(ChartDataLabels);
 
@@ -167,12 +181,20 @@
                     <div class="text-center mb-8">
                         <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🏥</span></div>
                         <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-2">บันทึกข้อมูล Med Error</h2>
-                        <p class="text-gray-600">กรอก HN ผู้ป่วยและกด Enter เพื่อบันทึก</p>
+                        <p class="text-gray-600">กรอก HN ผู้ป่วย, สแกนบาร์โค้ด, และกด Enter</p>
                     </div>
                     <form onsubmit="showErrorTypeModal(event)" class="space-y-6">
                         <div>
                             <label for="hnInput" class="block text-sm font-medium text-gray-700 mb-2">หมายเลข HN ผู้ป่วย</label>
-                            <input type="text" id="hnInput" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg text-center" placeholder="กรอกหมายเลข HN" required>
+                            <div class="flex items-center space-x-2">
+                                <input type="text" id="hnInput" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg text-center" placeholder="กรอกหรือสแกน HN" required>
+                                <button type="button" onclick="startScanner()" class="p-3 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors" aria-label="สแกนบาร์โค้ด">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h14a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">💾 บันทึกข้อมูล</button>
                     </form>
@@ -199,6 +221,52 @@
              document.getElementById('reportPage').innerHTML = `<div class="space-y-6"><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800 mb-4 sm:mb-0">🔍 กรองข้อมูล</h2><button onclick="fetchDataFromSheet()" class="w-full sm:w-auto bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.899 2.186l-2.003.812a5.002 5.002 0 00-8.224-2.223L8 10l-4 4 4 4-1.774-1.774a7.002 7.002 0 01-2.186-11.899V3a1 1 0 01-1-1z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M15.999 11.232a5.002 5.002 0 00-8.224 2.223L6 10l4-4-4-4 1.774 1.774a7.002 7.002 0 0110.125 10.125L18 10l-2.001-1.232z" clip-rule="evenodd" /></svg><span>รีเฟรชข้อมูล</span></button></div><div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"><div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label><input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${weekAgo}"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label><input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${today}"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">ประเภท Error</label><select id="errorTypeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${errorTypeOptions}</select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">คลินิก</label><select id="clinicFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${clinicOptions}</select></div><div><button onclick="filterData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">🔍 กรอง</button></div></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📊</div><div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div><div class="text-gray-600">จำนวนรวม</div></div><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📅</div><div class="text-2xl font-bold text-green-600" id="todayErrors">0</div><div class="text-gray-600">วันนี้</div></div><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📈</div><div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div><div class="text-gray-600">เฉลี่ยต่อวัน</div></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📈 กราฟรายวัน</h3><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">📥 Export Excel</button></div><div class="h-80"><canvas id="errorChart"></canvas></div></div><div class="bg-white rounded-xl shadow-lg p-6"><h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">📊 สัดส่วนประเภท Error</h3><div class="h-80 w-full max-w-md mx-auto"><canvas id="pieChart"></canvas></div></div></div><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📋 ตารางข้อมูลรายละเอียด</h3><div class="flex items-center space-x-2"><button id="prevDataBtn" onclick="prevDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button><span id="dataPageIndicator" class="text-sm text-gray-600 font-medium w-20 text-center"></span><button id="nextDataBtn" onclick="nextDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button></div></div><div class="overflow-x-auto"><table class="min-w-full table-auto"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ลำดับ</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HN</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ประเภท</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">คลินิก</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เวลา</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">จัดการ</th></tr></thead><tbody id="dataTable" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div>`;
         }
         
+        // --- SCANNER FUNCTION ---
+        function startScanner() {
+            Swal.fire({
+                title: 'สแกนบาร์โค้ด HN',
+                html: `<div id="scanner-container" class="relative w-full h-auto"></div><p class="mt-2 text-sm text-gray-600">กรุณาหันกล้องไปที่บาร์โค้ด</p>`,
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: 'ยกเลิก',
+                didOpen: () => {
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: document.querySelector('#scanner-container'),
+                            constraints: {
+                                width: 480,
+                                height: 320,
+                                facingMode: "environment" // rear camera
+                            },
+                        },
+                        decoder: {
+                             readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "codabar_reader"]
+                        },
+                    }, (err) => {
+                        if (err) {
+                            console.error(err);
+                            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถเริ่มต้นการทำงานของกล้องได้', 'error');
+                            return;
+                        }
+                        Quagga.start();
+                    });
+
+                    Quagga.onDetected((result) => {
+                        const code = result.codeResult.code;
+                        document.getElementById('hnInput').value = code;
+                        Quagga.stop();
+                        Swal.close();
+                        showNotification(`สแกน HN สำเร็จ: ${code}`, 'success');
+                    });
+                },
+                willClose: () => {
+                    Quagga.stop();
+                }
+            });
+        }
+
         // --- DATA ACTIONS ---
         function showErrorTypeModal(event) {
             event.preventDefault();
@@ -213,7 +281,7 @@
         }
 
         function showClinicModal(hn, errorType) {
-            highlightedIndex = -1; // Reset highlight
+            highlightedIndex = -1; 
             const outsideClickListener = (e) => {
                 const container = document.getElementById('searchable-dropdown-container');
                 if (container && !container.contains(e.target)) {
@@ -240,20 +308,12 @@
                     const popup = Swal.getPopup();
                     const htmlContainer = Swal.getHtmlContainer();
 
-                    // --- FIX START: Ensure dropdown appears on top ---
-                    // 1. Allow the main popup to show content that overflows its bounds.
-                    if (popup) {
-                        popup.style.overflow = 'visible';
-                    }
-                    // 2. Elevate the HTML container (which holds the input and dropdown)
-                    //    to a higher stacking level than its siblings (like the action buttons).
+                    if (popup) popup.style.overflow = 'visible';
                     if (htmlContainer) {
                         htmlContainer.style.overflow = 'visible';
-                        // A z-index is only applied to positioned elements, so set position to relative.
                         htmlContainer.style.position = 'relative';
                         htmlContainer.style.zIndex = '2';
                     }
-                    // --- FIX END ---
 
                     const input = document.getElementById('clinic-search-input');
                     input.addEventListener('focus', filterClinics);
@@ -264,26 +324,22 @@
                     });
                     input.addEventListener('keydown', keydownListener);
                     document.addEventListener('click', outsideClickListener);
-                    filterClinics(); // Initial population
-                    input.focus(); // Auto-focus the search input
+                    filterClinics();
+                    input.focus();
                 },
                 willClose: () => {
                     document.removeEventListener('click', outsideClickListener);
                     const input = document.getElementById('clinic-search-input');
                     if(input) input.removeEventListener('keydown', keydownListener);
                     
-                    // --- FIX START: Reset styles on close to avoid side-effects ---
                     const popup = Swal.getPopup();
                     const htmlContainer = Swal.getHtmlContainer();
-                    if (popup) {
-                        popup.style.overflow = 'auto';
-                    }
+                    if (popup) popup.style.overflow = 'auto';
                     if (htmlContainer) {
                         htmlContainer.style.overflow = 'auto';
                         htmlContainer.style.position = '';
                         htmlContainer.style.zIndex = '';
                     }
-                    // --- FIX END ---
                 },
                 preConfirm: () => {
                     const clinic = document.getElementById('clinic-search-input').value.trim();
@@ -314,12 +370,11 @@
                 if (highlightedIndex > -1 && items[highlightedIndex]) {
                     items[highlightedIndex].click();
                 } else {
-                    // If no item is highlighted, confirm the current input value
                     Swal.clickConfirm();
                 }
                 return;
             } else {
-                return; // Do not update highlight for other keys
+                return;
             }
             updateHighlight(items);
         }
@@ -362,7 +417,7 @@
             const dropdown = document.getElementById('clinic-dropdown');
             if (!input || !dropdown) return;
 
-            highlightedIndex = -1; // Reset on filter
+            highlightedIndex = -1; 
             
             const filter = input.value.toLowerCase();
             const filteredClinics = clinics.filter(c => c.toLowerCase().includes(filter));
@@ -379,7 +434,7 @@
         function selectClinic(clinicName) {
             document.getElementById('clinic-search-input').value = clinicName;
             document.getElementById('clinic-dropdown').classList.add('hidden');
-            Swal.clickConfirm(); // Automatically confirm after selection
+            Swal.clickConfirm(); 
         }
         
         function saveError(hn, errorType, clinic) {
