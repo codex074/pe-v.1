@@ -36,6 +36,14 @@
             font-size: 1rem !important; height: auto !important;
             padding: 0.75rem 1rem !important;
         }
+        /* New Delete Button Animation */
+        .delete-button .trash-lid {
+            transform-origin: top right;
+            transition: transform 0.3s ease-in-out;
+        }
+        .delete-button:hover .trash-lid {
+            transform: rotate(-45deg) translateY(-2px) translateX(1px);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-full thai-font">
@@ -103,18 +111,14 @@
         let medErrorData = [];
         let chart = null;
         let isSyncing = false;
+        let recentRecordsPage = 0;
+        const RECENT_ITEMS_PER_PAGE = 10;
 
         // --- INITIALIZATION ---
         document.addEventListener('DOMContentLoaded', async function() {
-            // Load data from localStorage first for an instant UI
             medErrorData = JSON.parse(localStorage.getItem('medErrorData')) || [];
-            showPage('record'); // Show page with cached data
-
-            // Fetch real-time data from Google Sheet
+            showPage('record'); 
             await fetchDataFromSheet(); 
-
-            // Set up periodic fetching
-            setInterval(fetchDataFromSheet, 30000); // Refresh every 30 seconds
         });
 
         // --- DATA FETCHING (REAL-TIME) ---
@@ -126,13 +130,13 @@
             if (syncStatus) syncStatus.textContent = 'กำลังซิงค์ข้อมูล...';
 
             try {
-                const response = await fetch(scriptURL); // GET request by default
+                const response = await fetch(scriptURL);
+                if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
                 const result = await response.json();
 
                 if (result.status === 'success') {
-                    // Data from sheet is the source of truth, sort newest first
-                    medErrorData = result.data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                    localStorage.setItem('medErrorData', JSON.stringify(medErrorData)); // Update cache
+                    medErrorData = result.data.sort((a, b) => b.id - a.id);
+                    localStorage.setItem('medErrorData', JSON.stringify(medErrorData));
                     
                     updateUIAfterFetch();
                     if (syncStatus) syncStatus.textContent = `อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')}`;
@@ -173,51 +177,65 @@
             document.getElementById('reportTab').classList.toggle('bg-blue-700', page === 'report');
         }
         
-        // Functions to render page content dynamically
         function renderRecordPage() {
             document.getElementById('recordPage').innerHTML = `
                 <div class="bg-white rounded-xl shadow-xl p-6 md:p-8 fade-in">
                     <div class="text-center mb-8">
-                        <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                            <span class="text-2xl">🏥</span>
-                        </div>
+                        <div class="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4"><span class="text-2xl">🏥</span></div>
                         <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-2">บันทึกข้อมูล Med Error</h2>
                         <p class="text-gray-600">กรอก HN ผู้ป่วยและกด Enter เพื่อบันทึก</p>
                     </div>
                     <form onsubmit="recordError(event)" class="space-y-6">
                         <div>
                             <label for="hnInput" class="block text-sm font-medium text-gray-700 mb-2">หมายเลข HN ผู้ป่วย</label>
-                            <input type="text" id="hnInput" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-lg text-center" placeholder="กรอกหมายเลข HN" required>
+                            <input type="text" id="hnInput" class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-lg text-center" placeholder="กรอกหมายเลข HN" required>
                         </div>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300">💾 บันทึกข้อมูล</button>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">💾 บันทึกข้อมูล</button>
                     </form>
                     <div class="mt-8">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 รายการล่าสุด</h3>
-                        <div id="recentRecords" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                        <div class="flex justify-between items-center mb-4">
+                             <h3 class="text-lg font-semibold text-gray-800">📋 รายการล่าสุด</h3>
+                             <div class="flex items-center space-x-2">
+                                 <button id="prevRecentBtn" onclick="prevRecentPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                     <svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                                 </button>
+                                 <span id="recentPageIndicator" class="text-sm text-gray-600 font-medium w-20 text-center"></span>
+                                 <button id="nextRecentBtn" onclick="nextRecentPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                                     <svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                                 </button>
+                             </div>
+                         </div>
+                        <div id="recentRecords" class="space-y-2"></div>
                     </div>
                 </div>`;
             updateRecentRecords();
         }
 
         function renderReportPage() {
-             const today = new Date();
-             const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+             const today = new Date().toISOString().split('T')[0];
+             const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
              document.getElementById('reportPage').innerHTML = `
                 <div class="space-y-6">
                     <div class="bg-white rounded-xl shadow-lg p-6">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">🔍 กรองข้อมูล</h2>
+                        <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                             <h2 class="text-xl font-bold text-gray-800 mb-4 sm:mb-0">🔍 กรองข้อมูล</h2>
+                             <button onclick="fetchDataFromSheet()" class="w-full sm:w-auto bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.899 2.186l-2.003.812a5.002 5.002 0 00-8.224-2.223L8 10l-4 4 4 4-1.774-1.774a7.002 7.002 0 01-2.186-11.899V3a1 1 0 01-1-1z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M15.999 11.232a5.002 5.002 0 00-8.224 2.223L6 10l4-4-4-4 1.774 1.774a7.002 7.002 0 0110.125 10.125L18 10l-2.001-1.232z" clip-rule="evenodd" /></svg>
+                                <span>รีเฟรชข้อมูล</span>
+                             </button>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label>
-                                <input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${weekAgo.toISOString().split('T')[0]}">
+                                <input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${weekAgo}">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label>
-                                <input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" value="${today.toISOString().split('T')[0]}">
+                                <input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${today}">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">ประเภท Error</label>
-                                <select id="errorTypeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <select id="errorTypeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                                     <option value="all">ทั้งหมด</option>
                                     <option value="สั่งยาผิดชนิด">สั่งยาผิดชนิด</option>
                                     <option value="สั่งยาผิดขนาด">สั่งยาผิดขนาด</option>
@@ -228,53 +246,24 @@
                                 </select>
                             </div>
                             <div>
-                                <button onclick="filterData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">🔍 กรองข้อมูล</button>
+                                <button onclick="filterData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">🔍 กรอง</button>
                             </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                         <div class="lg:col-span-2 space-y-6">
-                            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
-                                <div class="text-3xl mb-2">📊</div>
-                                <div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div>
-                                <div class="text-gray-600">จำนวนรวม (ที่กรอง)</div>
-                            </div>
-                            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
-                                <div class="text-3xl mb-2">📅</div>
-                                <div class="text-2xl font-bold text-green-600" id="todayErrors">0</div>
-                                <div class="text-gray-600">วันนี้ (ที่กรอง)</div>
-                            </div>
-                            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
-                                <div class="text-3xl mb-2">📈</div>
-                                <div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div>
-                                <div class="text-gray-600">เฉลี่ยต่อวัน (ที่กรอง)</div>
-                            </div>
+                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📊</div><div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div><div class="text-gray-600">จำนวนรวม (ที่กรอง)</div></div>
+                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📅</div><div class="text-2xl font-bold text-green-600" id="todayErrors">0</div><div class="text-gray-600">วันนี้ (ที่กรอง)</div></div>
+                            <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📈</div><div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div><div class="text-gray-600">เฉลี่ยต่อวัน (ที่กรอง)</div></div>
                         </div>
                         <div class="bg-white rounded-xl shadow-lg p-6 lg:col-span-3">
-                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-800">📈 กราฟแสดงจำนวน Med Error รายวัน</h3>
-                                <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition-colors text-sm">📥 Export Excel</button>
-                            </div>
+                             <div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📈 กราฟแสดงจำนวน Med Error รายวัน</h3><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">📥 Export Excel</button></div>
                             <div class="h-80"><canvas id="errorChart"></canvas></div>
                         </div>
                     </div>
                     <div class="bg-white rounded-xl shadow-lg p-6">
                         <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 ตารางข้อมูลรายละเอียด</h3>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full table-auto">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HN</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ประเภท</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เวลา</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dataTable" class="bg-white divide-y divide-gray-200"></tbody>
-                            </table>
-                        </div>
+                        <div class="overflow-x-auto"><table class="min-w-full table-auto"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HN</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ประเภท</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">วันที่</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">เวลา</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th></tr></thead><tbody id="dataTable" class="bg-white divide-y divide-gray-200"></tbody></table></div>
                     </div>
                 </div>`;
         }
@@ -285,22 +274,11 @@
             const hnInput = document.getElementById('hnInput');
             const hn = hnInput.value.trim();
             if (!hn) return;
-
             Swal.fire({
                 title: `บันทึก HN: ${hn}`,
-                html: `<p class="text-gray-600 mb-4">กรุณาเลือกประเภทความคลาดเคลื่อน</p>
-                       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                           <button onclick="saveError('${hn}', 'สั่งยาผิดชนิด')" class="error-type-btn bg-blue-500 hover:bg-blue-600">สั่งยาผิดชนิด</button>
-                           <button onclick="saveError('${hn}', 'สั่งยาผิดขนาด')" class="error-type-btn bg-green-500 hover:bg-green-600">สั่งยาผิดขนาด</button>
-                           <button onclick="saveError('${hn}', 'ผิดจำนวน')" class="error-type-btn bg-yellow-500 hover:bg-yellow-600 text-black">ผิดจำนวน</button>
-                           <button onclick="saveError('${hn}', 'ผิดวิธีใช้')" class="error-type-btn bg-red-500 hover:bg-red-600">ผิดวิธีใช้</button>
-                           <button onclick="saveError('${hn}', 'ยาซ้ำซ้อน')" class="error-type-btn bg-purple-500 hover:bg-purple-600">ยาซ้ำซ้อน</button>
-                           <button onclick="saveError('${hn}', 'คำสั่งไม่ชัดเจน')" class="error-type-btn bg-gray-500 hover:bg-gray-600">คำสั่งไม่ชัดเจน</button>
-                       </div>`,
-                showConfirmButton: false,
-                showCancelButton: true,
-                cancelButtonText: 'ยกเลิก',
-                cancelButtonColor: '#6b7280'
+                html: `<p class="text-gray-600 mb-4">กรุณาเลือกประเภทความคลาดเคลื่อน</p><div class="grid grid-cols-2 sm:grid-cols-3 gap-2"><button onclick="saveError('${hn}', 'สั่งยาผิดชนิด')" class="error-type-btn bg-blue-500 hover:bg-blue-600">สั่งยาผิดชนิด</button><button onclick="saveError('${hn}', 'สั่งยาผิดขนาด')" class="error-type-btn bg-green-500 hover:bg-green-600">สั่งยาผิดขนาด</button><button onclick="saveError('${hn}', 'ผิดจำนวน')" class="error-type-btn bg-yellow-500 hover:bg-yellow-600 text-black">ผิดจำนวน</button><button onclick="saveError('${hn}', 'ผิดวิธีใช้')" class="error-type-btn bg-red-500 hover:bg-red-600">ผิดวิธีใช้</button><button onclick="saveError('${hn}', 'ยาซ้ำซ้อน')" class="error-type-btn bg-purple-500 hover:bg-purple-600">ยาซ้ำซ้อน</button><button onclick="saveError('${hn}', 'คำสั่งไม่ชัดเจน')" class="error-type-btn bg-gray-500 hover:bg-gray-600">คำสั่งไม่ชัดเจน</button></div>`,
+                showConfirmButton: false, showCancelButton: true,
+                cancelButtonText: 'ยกเลิก', cancelButtonColor: '#6b7280'
             });
         }
         
@@ -313,134 +291,126 @@
                 date: now.toLocaleDateString('th-TH'),
                 time: now.toLocaleTimeString('th-TH')
             };
-
             medErrorData.unshift(record);
+            recentRecordsPage = 0; // Reset to first page
             updateRecentRecords();
             document.getElementById('hnInput').value = '';
             document.getElementById('hnInput').focus();
-            
             showNotification('กำลังบันทึกข้อมูล...', 'info');
             sendToGoogleSheets('addRecord', record).then(success => {
-                if (success) {
-                    showNotification('บันทึกข้อมูลสำเร็จ', 'success');
-                    fetchDataFromSheet();
-                }
+                if (success) { showNotification('บันทึกข้อมูลสำเร็จ', 'success'); fetchDataFromSheet(); }
             });
         }
         
         function editRecord(recordId) {
             const record = medErrorData.find(r => r.id === recordId);
             if (!record) return;
-
             const errorTypes = ['สั่งยาผิดชนิด', 'สั่งยาผิดขนาด', 'ผิดจำนวน', 'ผิดวิธีใช้', 'ยาซ้ำซ้อน', 'คำสั่งไม่ชัดเจน'];
-            const optionsHtml = errorTypes.map(type => 
-                `<option value="${type}" ${record.errorType === type ? 'selected' : ''}>${type}</option>`
-            ).join('');
-
+            const optionsHtml = errorTypes.map(type => `<option value="${type}" ${record.errorType === type ? 'selected' : ''}>${type}</option>`).join('');
             Swal.fire({
                 title: 'แก้ไขข้อมูล',
-                html: `<div class="space-y-4 p-2 text-center">
-                           <div>
-                               <label for="swal-hn-input" class="block text-sm font-medium text-gray-700 mb-1">หมายเลข HN</label>
-                               <input id="swal-hn-input" class="swal2-input w-full" value="${record.hn}" placeholder="กรอกหมายเลข HN">
-                           </div>
-                           <div>
-                               <label for="swal-error-type-select" class="block text-sm font-medium text-gray-700 mb-1">ประเภทความคลาดเคลื่อน</label>
-                               <select id="swal-error-type-select" class="swal2-select w-full">${optionsHtml}</select>
-                           </div>
-                       </div>`,
-                showCancelButton: true,
-                confirmButtonText: 'บันทึกการแก้ไข',
-                cancelButtonText: 'ยกเลิก',
+                html: `<div class="space-y-4 p-2 text-center"><div><label for="swal-hn-input" class="block text-sm font-medium text-gray-700 mb-1">หมายเลข HN</label><input id="swal-hn-input" class="swal2-input w-full" value="${record.hn}" placeholder="กรอกหมายเลข HN"></div><div><label for="swal-error-type-select" class="block text-sm font-medium text-gray-700 mb-1">ประเภทความคลาดเคลื่อน</label><select id="swal-error-type-select" class="swal2-select w-full">${optionsHtml}</select></div></div>`,
+                showCancelButton: true, confirmButtonText: 'บันทึกการแก้ไข', cancelButtonText: 'ยกเลิก',
                 preConfirm: () => {
                     const newHn = document.getElementById('swal-hn-input').value.trim();
-                    if (!newHn) {
-                        Swal.showValidationMessage('กรุณากรอกหมายเลข HN');
-                        return false;
-                    }
+                    if (!newHn) { Swal.showValidationMessage('กรุณากรอกหมายเลข HN'); return false; }
                     return { newHn, newErrorType: document.getElementById('swal-error-type-select').value };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
                     const { newHn, newErrorType } = result.value;
-                    const recordIndex = medErrorData.findIndex(r => r.id === recordId);
-                    if (recordIndex !== -1) {
-                        medErrorData[recordIndex].hn = newHn;
-                        medErrorData[recordIndex].errorType = newErrorType;
-                        updateUIAfterFetch();
-                        
-                        showNotification('กำลังแก้ไขข้อมูล...', 'info');
-                        sendToGoogleSheets('editRecord', { id: recordId, hn: newHn, errorType: newErrorType })
-                            .then(success => {
-                                if (success) {
-                                    showNotification('แก้ไขข้อมูลสำเร็จ', 'success');
-                                    fetchDataFromSheet();
-                                }
-                            });
-                    }
+                    medErrorData = medErrorData.map(r => r.id === recordId ? {...r, hn: newHn, errorType: newErrorType} : r);
+                    updateUIAfterFetch();
+                    showNotification('กำลังแก้ไขข้อมูล...', 'info');
+                    sendToGoogleSheets('editRecord', { id: recordId, hn: newHn, errorType: newErrorType })
+                        .then(success => { if (success) { showNotification('แก้ไขข้อมูลสำเร็จ', 'success'); fetchDataFromSheet(); } });
                 }
             });
         }
         
         function deleteRecord(recordId) {
             Swal.fire({
-                title: 'ยืนยันการลบ', text: "ข้อมูลจะถูกลบทั้งในเครื่องและ Google Sheet!", icon: 'warning',
-                showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6',
-                confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก'
+                title: 'ยืนยันการลบ', text: "ข้อมูลจะถูกลบจาก Google Sheet!", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย!',
             }).then((result) => {
                 if (result.isConfirmed) {
                     const originalData = [...medErrorData];
                     medErrorData = medErrorData.filter(r => r.id !== recordId);
                     updateUIAfterFetch();
-                    
                     showNotification('กำลังลบข้อมูล...', 'info');
                     sendToGoogleSheets('deleteRecord', { id: recordId }).then(success => {
-                        if (success) {
-                            showNotification('ลบข้อมูลสำเร็จ', 'success');
-                            fetchDataFromSheet();
-                        } else {
-                            medErrorData = originalData; // Revert on failure
-                            updateUIAfterFetch();
-                        }
+                        if (success) { showNotification('ลบข้อมูลสำเร็จ', 'success'); fetchDataFromSheet(); } 
+                        else { medErrorData = originalData; updateUIAfterFetch(); }
                     });
                 }
-            })
+            });
         }
 
         // --- UI & REPORTING ---
         function updateUIAfterFetch() {
             updateRecentRecords();
-            if (document.getElementById('reportPage').style.display === 'block') {
-                loadReportData();
+            if (document.getElementById('reportPage').style.display === 'block') { loadReportData(); }
+        }
+
+        function prevRecentPage() {
+            if (recentRecordsPage > 0) {
+                recentRecordsPage--;
+                updateRecentRecords();
+            }
+        }
+
+        function nextRecentPage() {
+            const totalPages = Math.ceil(medErrorData.length / RECENT_ITEMS_PER_PAGE);
+            if (recentRecordsPage < totalPages - 1) {
+                recentRecordsPage++;
+                updateRecentRecords();
             }
         }
 
         function updateRecentRecords() {
             const container = document.getElementById('recentRecords');
             if (!container) return;
-            const recent = medErrorData.slice(0, 5);
-            if (recent.length === 0) {
+
+            const totalItems = medErrorData.length;
+            const totalPages = Math.ceil(totalItems / RECENT_ITEMS_PER_PAGE) || 1;
+
+            if (recentRecordsPage >= totalPages) {
+                recentRecordsPage = totalPages - 1;
+            }
+
+            const start = recentRecordsPage * RECENT_ITEMS_PER_PAGE;
+            const end = start + RECENT_ITEMS_PER_PAGE;
+            const pageItems = medErrorData.slice(start, end);
+            
+            const pageIndicator = document.getElementById('recentPageIndicator');
+            const prevBtn = document.getElementById('prevRecentBtn');
+            const nextBtn = document.getElementById('nextRecentBtn');
+            
+            if(pageIndicator) pageIndicator.textContent = totalItems > 0 ? `หน้า ${recentRecordsPage + 1} / ${totalPages}` : 'ไม่มีข้อมูล';
+            if(prevBtn) prevBtn.disabled = recentRecordsPage === 0;
+            if(nextBtn) nextBtn.disabled = recentRecordsPage >= totalPages - 1;
+
+            if (pageItems.length === 0) {
                 container.innerHTML = '<p class="text-gray-500 text-center py-4">ยังไม่มีข้อมูล</p>';
                 return;
             }
-            container.innerHTML = recent.map(record => `
-                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100">
-                    <div>
-                        <span class="font-medium text-gray-800">HN: ${record.hn}</span>
-                        <p class="text-sm text-blue-600 font-semibold">${record.errorType}</p>
-                    </div>
+            
+            container.innerHTML = pageItems.map(record => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div><span class="font-medium text-gray-800">HN: ${record.hn}</span><p class="text-sm text-blue-600">${record.errorType}</p></div>
                     <div class="flex items-center space-x-2">
                         <div class="text-sm text-gray-600 text-right">${record.date}<br>${record.time.substring(0,5)}</div>
-                        <button onclick="editRecord(${record.id})" class="group relative flex h-9 w-9 flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-indigo-700 bg-indigo-400 hover:bg-indigo-600">
-                           <div class="relative h-full w-full flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 48 48" height="24" width="24" class="absolute z-10"><path d="M9.7 38.3q-1.45 0-2.475-1.025Q6.2 36.25 6.2 34.8V9.7q0-1.45 1.025-2.475Q8.25 6.2 9.7 6.2h18.6L41.8 19.7v15.1q0 1.45-1.025 2.475Q39.75 38.3 38.3 38.3Zm0-3h28.6V20.8l-11.1-11.1H9.7v28.6Zm11.1-6.45 8.9-8.9-2.15-2.1-8.9 8.9ZM9.7 35.3V9.7v25.6Z"/></svg>
-                                <svg fill="yellow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="absolute h-6 w-6 text-white z-20 hidden group-hover:block transition-all duration-300 group-hover:scale-125"><path clip-rule="evenodd" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" fill-rule="evenodd"></path></svg>
-                            </div>
-                        </button>
-                        <button onclick="deleteRecord(${record.id})" class="group relative flex h-9 w-9 flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-red-800 bg-red-400 hover:bg-red-600">
-                            <svg viewBox="0 0 1.625 1.625" class="absolute -top-7 fill-white delay-100 group-hover:top-6 group-hover:animate-[spin_1.4s] group-hover:duration-1000" height="15" width="15"><path d="M.471 1.024v-.52a.1.1 0 0 0-.098.098v.618c0 .054.044.098.098.098h.487a.1.1 0 0 0 .098-.099h-.39c-.107 0-.195 0-.195-.195"></path><path d="M1.219.601h-.163A.1.1 0 0 1 .959.504V.341A.033.033 0 0 0 .926.309h-.26a.1.1 0 0 0-.098.098v.618c0 .054.044.098.098.098h.487a.1.1 0 0 0 .098-.099v-.39a.033.033 0 0 0-.032-.033"></path><path d="m1.245.465-.15-.15a.02.02 0 0 0-.016-.006.023.023 0 0 0-.023.022v.108c0 .036.029.065.065.065h.107a.023.023 0 0 0 .023-.023.02.02 0 0 0-.007-.016"></path></svg>
-                            <svg width="16" fill="none" viewBox="0 0 39 7" class="origin-right duration-500 group-hover:rotate-90"><line stroke-width="4" stroke="white" y2="5" x2="39" y1="5"></line><line stroke-width="3" stroke="white" y2="1.5" x2="26.0357" y1="1.5" x1="12"></line></svg>
-                            <svg width="16" fill="none" viewBox="0 0 33 39" class=""><mask fill="white" id="mask_${record.id}"><path d="M0 0H33V35C33 37.2091 31.2091 39 29 39H4C1.79086 39 0 37.2091 0 35V0Z"></path></mask><path mask="url(#mask_${record.id})" fill="white" d="M0 0H33H0ZM37 35C37 39.4183 33.4183 43 29 43H4C-0.418278 43 -4 39.4183 -4 35H4H29H37ZM4 43C-0.418278 43 -4 39.4183 -4 35V0H4V35V43ZM37 0V35C37 39.4183 33.4183 43 29 43V35V0H37Z"></path><path stroke-width="4" stroke="white" d="M12 6L12 29"></path><path stroke-width="4" stroke="white" d="M21 6V29"></path></svg>
+                        <button onclick="editRecord(${record.id})" class="group flex h-9 w-9 items-center justify-center rounded-xl border-2 border-indigo-700 bg-indigo-400 hover:bg-indigo-600"><div class="relative flex h-full w-full items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 48 48" height="24" width="24" class="absolute z-10"><path d="M9.7 38.3q-1.45 0-2.475-1.025Q6.2 36.25 6.2 34.8V9.7q0-1.45 1.025-2.475Q8.25 6.2 9.7 6.2h18.6L41.8 19.7v15.1q0 1.45-1.025 2.475Q39.75 38.3 38.3 38.3Zm0-3h28.6V20.8l-11.1-11.1H9.7v28.6Zm11.1-6.45 8.9-8.9-2.15-2.1-8.9 8.9ZM9.7 35.3V9.7v25.6Z"/></svg><svg fill="yellow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="absolute h-6 w-6 text-white z-20 hidden group-hover:block transition-all group-hover:scale-125"><path clip-rule="evenodd" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" fill-rule="evenodd"></path></svg></div></button>
+                        <button onclick="deleteRecord(${record.id})" class="delete-button group flex h-9 w-9 items-center justify-center rounded-xl border-2 border-red-800 bg-red-400 hover:bg-red-600 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20">
+                                <g class="trash-lid">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v1.5H3.75V6z" />
+                                </g>
+                                <g>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 7.5L13.5 18M10.5 7.5L9.75 18" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 6v12.75a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25V6h-13.5z" />
+                                </g>
+                            </svg>
                         </button>
                     </div>
                 </div>`).join('');
@@ -457,18 +427,72 @@
                 const end = new Date(endDate).setHours(23,59,59,999);
                 filtered = filtered.filter(r => new Date(r.timestamp) >= start && new Date(r.timestamp) <= end);
             }
-            if (errorType !== 'all') {
-                filtered = filtered.filter(r => r.errorType === errorType);
-            }
+            if (errorType !== 'all') { filtered = filtered.filter(r => r.errorType === errorType); }
             updateSummaryCards(filtered);
             updateChart(filtered);
             updateDataTable(filtered);
         }
 
-        function updateSummaryCards(data) { /* ... same as before ... */ }
-        function updateChart(data) { /* ... same as before ... */ }
-        function updateDataTable(data) { /* ... same as before, but ensure mask IDs are unique */ }
-        
+        function updateSummaryCards(data) {
+            document.getElementById('totalErrors').textContent = data.length;
+            const today = new Date().toLocaleDateString('th-TH');
+            document.getElementById('todayErrors').textContent = data.filter(r => r.date === today).length;
+            const days = new Set(data.map(r => r.date)).size;
+            document.getElementById('avgDaily').textContent = days > 0 ? (data.length / days).toFixed(1) : 0;
+        }
+
+        function updateChart(data) {
+            const ctx = document.getElementById('errorChart').getContext('2d');
+            const dailyData = data.reduce((acc, {date}) => { acc[date] = (acc[date] || 0) + 1; return acc; }, {});
+            const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates,
+                    datasets: [{
+                        label: 'จำนวน Med Error', data: sortedDates.map(date => dailyData[date]),
+                        borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3, fill: true, tension: 0.4
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+            });
+        }
+
+        function updateDataTable(data) {
+            const tableBody = document.getElementById('dataTable');
+            if (!tableBody) return;
+            if (data.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">ไม่มีข้อมูลในช่วงเวลาที่เลือก</td></tr>`;
+                return;
+            }
+            tableBody.innerHTML = data.map((r, index) => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-4 text-sm text-gray-900">${index + 1}</td>
+                    <td class="px-4 py-4 text-sm font-medium text-gray-900">${r.hn}</td>
+                    <td class="px-4 py-4 text-sm text-blue-800">${r.errorType}</td>
+                    <td class="px-4 py-4 text-sm text-gray-900">${r.date}</td>
+                    <td class="px-4 py-4 text-sm text-gray-900">${r.time}</td>
+                    <td class="px-4 py-4 text-sm">
+                        <div class="flex items-center space-x-2">
+                             <button onclick="editRecord(${r.id})" class="group relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border-2 border-indigo-700 bg-indigo-400 hover:bg-indigo-600"><div class="relative flex h-full w-full items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 48 48" height="24" width="24" class="absolute z-10"><path d="M9.7 38.3q-1.45 0-2.475-1.025Q6.2 36.25 6.2 34.8V9.7q0-1.45 1.025-2.475Q8.25 6.2 9.7 6.2h18.6L41.8 19.7v15.1q0 1.45-1.025 2.475Q39.75 38.3 38.3 38.3Zm0-3h28.6V20.8l-11.1-11.1H9.7v28.6Zm11.1-6.45 8.9-8.9-2.15-2.1-8.9 8.9ZM9.7 35.3V9.7v25.6Z"/></svg><svg fill="yellow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="absolute h-6 w-6 text-white z-20 hidden group-hover:block transition-all group-hover:scale-125"><path clip-rule="evenodd" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" fill-rule="evenodd"></path></svg></div></button>
+                            <button onclick="deleteRecord(${r.id})" class="delete-button group flex h-9 w-9 items-center justify-center rounded-xl border-2 border-red-800 bg-red-400 hover:bg-red-600 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20" class="text-white">
+                                    <g class="trash-lid">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v1.5H3.75V6z" />
+                                    </g>
+                                    <g>
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.25 7.5L13.5 18M10.5 7.5L9.75 18" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 6v12.75a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25V6h-13.5z" />
+                                    </g>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`).join('');
+        }
+
         // --- DATA EXPORT & SYNC ---
         async function sendToGoogleSheets(action, data) {
             const formData = new FormData();
@@ -481,15 +505,34 @@
                     showNotification('เกิดข้อผิดพลาดกับ Google Sheets', 'error');
                     console.error('Google Sheets Error:', result.message);
                     return false;
-                }
-                return true;
+                } return true;
             } catch (error) {
                 showNotification('ไม่สามารถเชื่อมต่อ Google Sheets ได้', 'error');
                 console.error('Fetch Error:', error);
                 return false;
             }
         }
-        function exportToExcel() { /* ... same as before ... */ }
+        function exportToExcel() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const errorType = document.getElementById('errorTypeFilter').value;
+            let filtered = medErrorData;
+            if (startDate && endDate) {
+                const start = new Date(startDate).setHours(0,0,0,0);
+                const end = new Date(endDate).setHours(23,59,59,999);
+                filtered = filtered.filter(r => new Date(r.timestamp) >= start && new Date(r.timestamp) <= end);
+            }
+            if (errorType !== 'all') { filtered = filtered.filter(r => r.errorType === errorType); }
+            let csvContent = "ลำดับ,HN,ประเภท,วันที่,เวลา\n";
+            filtered.forEach((r, i) => { csvContent += `${i + 1},"${r.hn}","${r.errorType}",${r.date},"${r.time}"\n`; });
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `med_error_report_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // --- UTILITIES ---
         function showLoading(isLoading) {
