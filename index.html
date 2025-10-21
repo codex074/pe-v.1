@@ -10,11 +10,14 @@
     <meta name="theme-color" content="#3b82f6">
     <link rel="apple-touch-icon" href="icons/icon-180x180.png">
 
+    <!-- External Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    
+    <!-- Custom Styles -->
     <style>
         body { box-sizing: border-box; }
         .thai-font { font-family: 'Sarabun', 'Noto Sans Thai', sans-serif; }
@@ -38,7 +41,7 @@
         /* --- IMPROVED SEARCHABLE DROPDOWN STYLES --- */
         .clinic-search-container { position: relative; width: 100%; }
         
-        #clinic-search-input { /* Target the specific input */
+        #clinic-search-input {
              padding: 0.75rem 1rem !important;
              border: 1px solid #d1d5db !important;
              border-radius: 0.5rem !important;
@@ -54,13 +57,13 @@
 
         .clinic-dropdown {
             position: absolute; top: 100%; left: 0; right: 0; 
-            z-index: 9999; 
+            z-index: 99999; 
             background: white; 
             border: 1px solid #e5e7eb;
             border-top: none;
             border-radius: 0 0 0.5rem 0.5rem;
             margin-top: 2px;
-            max-height: 130px;
+            max-height: 150px;
             overflow-y: auto;
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
@@ -84,7 +87,7 @@
         /* --- SCANNER STYLES --- */
         #scanner-container {
             position: relative;
-            overflow: hidden; /* Hide overflow to keep rounded corners */
+            overflow: hidden;
             border-radius: 0.5rem;
         }
         #scanner-container video, #scanner-container canvas {
@@ -107,50 +110,140 @@
             transform: translateY(-50%);
             z-index: 10;
         }
+
+        /* --- NEW LOADER STYLES --- */
+        .pl {
+            width: 6em;
+            height: 6em;
+        }
+        .pl__ring {
+            animation: ringA 2s linear infinite;
+        }
+        .pl__ring--a { stroke: #f42f25; }
+        .pl__ring--b { animation-name: ringB; stroke: #f49725; }
+        .pl__ring--c { animation-name: ringC; stroke: #255ff4; }
+        .pl__ring--d { animation-name: ringD; stroke: #f42582; }
+
+        @keyframes ringA {
+            from, 4% { stroke-dasharray: 0 660; stroke-width: 20; stroke-dashoffset: -330; }
+            12% { stroke-dasharray: 60 600; stroke-width: 30; stroke-dashoffset: -335; }
+            32% { stroke-dasharray: 60 600; stroke-width: 30; stroke-dashoffset: -595; }
+            40%, 54% { stroke-dasharray: 0 660; stroke-width: 20; stroke-dashoffset: -660; }
+            62% { stroke-dasharray: 60 600; stroke-width: 30; stroke-dashoffset: -665; }
+            82% { stroke-dasharray: 60 600; stroke-width: 30; stroke-dashoffset: -925; }
+            90%, to { stroke-dasharray: 0 660; stroke-width: 20; stroke-dashoffset: -990; }
+        }
+        @keyframes ringB {
+            from, 12% { stroke-dasharray: 0 220; stroke-width: 20; stroke-dashoffset: -110; }
+            20% { stroke-dasharray: 20 200; stroke-width: 30; stroke-dashoffset: -115; }
+            40% { stroke-dasharray: 20 200; stroke-width: 30; stroke-dashoffset: -195; }
+            48%, 62% { stroke-dasharray: 0 220; stroke-width: 20; stroke-dashoffset: -220; }
+            70% { stroke-dasharray: 20 200; stroke-width: 30; stroke-dashoffset: -225; }
+            90% { stroke-dasharray: 20 200; stroke-width: 30; stroke-dashoffset: -305; }
+            98%, to { stroke-dasharray: 0 220; stroke-width: 20; stroke-dashoffset: -330; }
+        }
+        @keyframes ringC {
+            from { stroke-dasharray: 0 440; stroke-width: 20; stroke-dashoffset: 0; }
+            8% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -5; }
+            28% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -175; }
+            36%, 58% { stroke-dasharray: 0 440; stroke-width: 20; stroke-dashoffset: -220; }
+            66% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -225; }
+            86% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -395; }
+            94%, to { stroke-dasharray: 0 440; stroke-width: 20; stroke-dashoffset: -440; }
+        }
+        @keyframes ringD {
+            from, 8% { stroke-dasharray: 0 440; stroke-width: 20; stroke-dashoffset: 0; }
+            16% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -5; }
+            36% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -175; }
+            44%, 50% { stroke-dasharray: 0 440; stroke-width: 20; stroke-dashoffset: -220; }
+            58% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -225; }
+            78% { stroke-dasharray: 40 400; stroke-width: 30; stroke-dashoffset: -395; }
+            86%, to { stroke-dasharray: 0 440; stroke-width: 20; stroke-dashoffset: -440; }
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-full thai-font">
     
-    <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-50" style="display: none;">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50" style="display: none;">
         <div class="text-center">
-            <svg class="animate-spin h-10 w-10 text-blue-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p class="mt-2 text-gray-700">กำลังโหลดข้อมูลล่าสุด...</p>
+             <!-- New SVG Loader -->
+            <svg class="pl" width="120" height="120" viewBox="0 0 240 240">
+                <circle class="pl__ring pl__ring--a" cx="120" cy="120" r="105" fill="none" stroke="#000" stroke-width="20" stroke-dasharray="0 660" stroke-dashoffset="-330" stroke-linecap="round"></circle>
+                <circle class="pl__ring pl__ring--b" cx="120" cy="120" r="35" fill="none" stroke="#000" stroke-width="20" stroke-dasharray="0 220" stroke-dashoffset="-110" stroke-linecap="round"></circle>
+                <circle class="pl__ring pl__ring--c" cx="85" cy="120" r="70" fill="none" stroke="#000" stroke-width="20" stroke-dasharray="0 440" stroke-linecap="round"></circle>
+                <circle class="pl__ring pl__ring--d" cx="155" cy="120" r="70" fill="none" stroke="#000" stroke-width="20" stroke-dasharray="0 440" stroke-linecap="round"></circle>
+            </svg>
+            <p class="mt-4 text-gray-700 font-semibold">กำลังโหลดข้อมูลล่าสุด...</p>
         </div>
     </div>
 
-    <header class="bg-white shadow-lg border-b-4 border-blue-600"><div class="container mx-auto px-4 py-6 text-center"><h1 class="text-2xl md:text-3xl font-bold text-blue-800 mb-2">ระบบเก็บข้อมูล Prescribing Error</h1><p class="text-blue-600 text-sm md:text-base">ห้องจ่ายยาผู้ป่วยนอก โรงพยาบาลอุตรดิตถ์</p></div></header>
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b-4 border-blue-600">
+        <div class="container mx-auto px-4 py-6 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-blue-800 mb-2">ระบบเก็บข้อมูล Prescribing Error</h1>
+            <p class="text-blue-600 text-sm md:text-base">ห้องจ่ายยาผู้ป่วยนอก โรงพยาบาลอุตรดิตถ์</p>
+        </div>
+    </header>
 
-    <nav class="bg-blue-600 shadow-md"><div class="container mx-auto px-4"><div class="flex justify-center space-x-1"><button onclick="showPage('record')" id="recordTab" class="px-6 py-3 text-white font-medium transition-all duration-200 border-b-2 border-transparent hover:bg-blue-700 focus:outline-none">📝 บันทึกข้อมูล</button><button onclick="showPage('report')" id="reportTab" class="px-6 py-3 text-white font-medium transition-all duration-200 border-b-2 border-transparent hover:bg-blue-700 focus:outline-none">📊 รายงาน</button></div></div></nav>
+    <!-- Navigation Tabs -->
+    <nav class="bg-blue-600 shadow-md">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-center space-x-1">
+                <button onclick="showPage('record')" id="recordTab" class="px-6 py-3 text-white font-medium transition-all duration-200 border-b-2 border-transparent hover:bg-blue-700 focus:outline-none">📝 บันทึกข้อมูล</button>
+                <button onclick="showPage('report')" id="reportTab" class="px-6 py-3 text-white font-medium transition-all duration-200 border-b-2 border-transparent hover:bg-blue-700 focus:outline-none">📊 รายงาน</button>
+            </div>
+        </div>
+    </nav>
 
+    <!-- Page Content -->
     <div id="recordPage" class="container mx-auto px-4 py-8 max-w-2xl"></div>
     <div id="reportPage" class="container mx-auto px-4 py-8 hidden"></div>
 
-    <footer class="text-center py-4"><p id="syncStatus" class="text-xs text-gray-500">กำลังเชื่อมต่อ...</p></footer>
+    <!-- Footer -->
+    <footer class="text-center py-4">
+        <p id="syncStatus" class="text-xs text-gray-500">กำลังเชื่อมต่อ...</p>
+    </footer>
 
     <script>
-        // --- PWA Service Worker Registration ---
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.log('SW reg failed: ', err)); }); }
+        // --- PWA Service Worker Registration (Optional) ---
+        if ('serviceWorker' in navigator) { 
+            window.addEventListener('load', () => { 
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('Service Worker registration failed: ', err)); 
+            }); 
+        }
 
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbx3Gry5fMrN2QIlGBkWtpE3a2URRXL9cCX4fU2HU7w5FvAVDFDKfQZkbGAGtFLK74zk/exec'; 
+        // --- Configuration ---
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwRXhaSc12Qb-SZGE7Lo1hkeRYbUDsRDkAHyqlfDjkLxkpL_eimtLOJOZC6Ky6osFHF/exec'; 
+        
+        // --- Global State ---
         let medErrorData = [];
-        let clinics = ['อายุรกรรมทั่วไป', 'ศัลยกรรมกระดูก', 'ศัลยกรรมประสาท', 'สูติ-นรีเวช', 'โรคเลือด', 'ผิวหนัง', 'เบาหวาน', 'ความดัน'];
-        const errorTypes = ['จำนวนยาไม่ถึงนัด', 'เกินวันนัด'];
-        let chart = null, pieChart = null, isSyncing = false;
-        let recentRecordsPage = 0, dataTablePage = 0, currentFilteredData = [];
-        const RECENT_ITEMS_PER_PAGE = 10, DATA_TABLE_ITEMS_PER_PAGE = 20;
+        let clinics = ['อายุรกรรมทั่วไป', 'ศัลยกรรมกระดูก', 'ศัลยกรรมประสาท', 'สูติ-นรีเวช', 'โรคเลือด', 'ผิวหนัง', 'เบาหวาน', 'ความดัน']; // Default clinics
+        const errorTypes = ['จำนวนยาไม่ถึงนัด', 'เกินวันนัด', 'สั่งยาวิธีใช้ off'];
+        let chart = null, pieChart = null, clinicChart = null;
+        let isSyncing = false;
+        let recentRecordsPage = 0, dataTablePage = 0;
+        let currentFilteredData = [];
+        const RECENT_ITEMS_PER_PAGE = 10;
+        const DATA_TABLE_ITEMS_PER_PAGE = 20;
         let highlightedIndex = -1; 
 
+        // --- Chart.js Setup ---
         Chart.register(ChartDataLabels);
 
+        // --- App Initialization ---
         document.addEventListener('DOMContentLoaded', async () => {
             medErrorData = JSON.parse(localStorage.getItem('medErrorData')) || [];
             const storedClinics = JSON.parse(localStorage.getItem('clinics')) || [];
-            if (storedClinics.length > 0) clinics = storedClinics;
+            if (storedClinics.length > 0) {
+                clinics = storedClinics;
+            }
             currentFilteredData = [...medErrorData];
             showPage('record'); 
             await fetchDataFromSheet(); 
         });
 
+        // --- Data Fetching ---
         async function fetchDataFromSheet() {
             if (isSyncing) return;
             isSyncing = true;
@@ -158,34 +251,74 @@
             document.getElementById('syncStatus').textContent = 'กำลังซิงค์ข้อมูล...';
             try {
                 const response = await fetch(scriptURL);
-                if (!response.ok) throw new Error(`Network response: ${response.statusText}`);
+                if (!response.ok) throw new Error(`Network response error: ${response.statusText}`);
                 const result = await response.json();
+                
                 if (result.status === 'success') {
-                    medErrorData = (result.data.pe || []).sort((a, b) => b.id - a.id);
+                    // **FIX**: Process raw data from sheet to ensure correct date/time formatting
+                    const rawData = (result.data.pe || []);
+                    medErrorData = rawData.map(record => {
+                        // The 'timestamp' from Google Sheets is a reliable ISO string.
+                        // Some other date/time fields might be formatted strangely.
+                        const recordDate = new Date(record.timestamp);
+                        return {
+                            ...record,
+                            date: formatDateToThaiString(recordDate),
+                            time: formatTimeToThaiString(recordDate)
+                        };
+                    }).sort((a, b) => b.id - a.id); // Sort after processing
+
                     clinics = result.data.clinics || clinics;
                     localStorage.setItem('medErrorData', JSON.stringify(medErrorData));
                     localStorage.setItem('clinics', JSON.stringify(clinics));
                     updateUIAfterFetch();
                     document.getElementById('syncStatus').textContent = `อัปเดตล่าสุด: ${new Date().toLocaleTimeString('th-TH')}`;
-                } else { throw new Error(result.message); }
+                } else { 
+                    throw new Error(result.message || 'Unknown server error'); 
+                }
             } catch (error) {
                 console.error('Fetch Error:', error);
-                showNotification('ไม่สามารถโหลดข้อมูลล่าสุดได้', 'error');
-                document.getElementById('syncStatus').textContent = 'การเชื่อมต่อล้มเหลว';
-            } finally { isSyncing = false; showLoading(false); }
+                const errorMessage = error.toString();
+                
+                if (errorMessage.includes('getDataRange') || errorMessage.includes('getSheetByName') || errorMessage.includes('ไม่พบชีทชื่อ')) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาดในการเชื่อมต่อชีท',
+                        html: `ไม่สามารถดึงข้อมูลได้ อาจเกิดจากชีท <b>"Data"</b> หรือ <b>"Clinics"</b> ไม่มีอยู่ หรือสะกดชื่อผิด<br><br>กรุณาตรวจสอบ Google Sheet ของคุณและลองอีกครั้ง`,
+                        confirmButtonText: 'รับทราบ'
+                    });
+                    document.getElementById('syncStatus').textContent = 'ตั้งค่าชีทไม่ถูกต้อง';
+                } else {
+                    showNotification('ไม่สามารถโหลดข้อมูลล่าสุดได้', 'error');
+                    document.getElementById('syncStatus').textContent = 'การเชื่อมต่อล้มเหลว';
+                }
+            } finally { 
+                isSyncing = false; 
+                showLoading(false); 
+            }
         }
         
+        // --- Page Navigation ---
         function showPage(page) {
             document.getElementById('recordPage').style.display = 'none';
             document.getElementById('reportPage').style.display = 'none';
-            if (page === 'record') { renderRecordPage(); document.getElementById('recordPage').style.display = 'block'; } 
-            else { renderReportPage(); document.getElementById('reportPage').style.display = 'block'; loadReportData(); }
+            
+            if (page === 'record') { 
+                renderRecordPage(); 
+                document.getElementById('recordPage').style.display = 'block'; 
+            } else { 
+                renderReportPage(); 
+                document.getElementById('reportPage').style.display = 'block'; 
+                loadReportData(); 
+            }
+            
             const recordTab = document.getElementById('recordTab');
             const reportTab = document.getElementById('reportTab');
             if(recordTab) recordTab.classList.toggle('bg-blue-700', page === 'record');
             if(reportTab) reportTab.classList.toggle('bg-blue-700', page === 'report');
         }
         
+        // --- UI Rendering ---
         function renderRecordPage() {
             document.getElementById('recordPage').innerHTML = `
                 <div class="bg-white rounded-xl shadow-xl p-6 md:p-8 fade-in relative">
@@ -232,10 +365,71 @@
              const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
              const clinicOptions = clinics.map(c => `<option value="${c}">${c}</option>`).join('');
              const errorTypeOptions = errorTypes.map(e => `<option value="${e}">${e}</option>`).join('');
-             document.getElementById('reportPage').innerHTML = `<div class="space-y-6"><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex flex-col sm:flex-row justify-between items-center mb-4"><h2 class="text-xl font-bold text-gray-800 mb-4 sm:mb-0">🔍 กรองข้อมูล</h2><button onclick="fetchDataFromSheet()" class="w-full sm:w-auto bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-2 px-4 rounded-lg flex items-center justify-center space-x-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.899 2.186l-2.003.812a5.002 5.002 0 00-8.224-2.223L8 10l-4 4 4 4-1.774-1.774a7.002 7.002 0 01-2.186-11.899V3a1 1 0 01-1-1z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M15.999 11.232a5.002 5.002 0 00-8.224 2.223L6 10l4-4-4-4 1.774 1.774a7.002 7.002 0 0110.125 10.125L18 10l-2.001-1.232z" clip-rule="evenodd" /></svg><span>รีเฟรชข้อมูล</span></button></div><div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end"><div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label><input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${weekAgo}"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label><input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${today}"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">ประเภท Error</label><select id="errorTypeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${errorTypeOptions}</select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">คลินิก</label><select id="clinicFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${clinicOptions}</select></div><div><button onclick="filterData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">🔍 กรอง</button></div></div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📊</div><div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div><div class="text-gray-600">จำนวนรวม</div></div><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📅</div><div class="text-2xl font-bold text-green-600" id="todayErrors">0</div><div class="text-gray-600">วันนี้</div></div><div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📈</div><div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div><div class="text-gray-600">เฉลี่ยต่อวัน</div></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📈 กราฟรายวัน</h3><button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">📥 Export Excel</button></div><div class="h-80"><canvas id="errorChart"></canvas></div></div><div class="bg-white rounded-xl shadow-lg p-6"><h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">📊 สัดส่วนประเภท Error</h3><div class="h-80 w-full max-w-md mx-auto"><canvas id="pieChart"></canvas></div></div></div><div class="bg-white rounded-xl shadow-lg p-6"><div class="flex justify-between items-center mb-4"><h3 class="text-lg font-semibold text-gray-800">📋 ตารางข้อมูลรายละเอียด</h3><div class="flex items-center space-x-2"><button id="prevDataBtn" onclick="prevDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button><span id="dataPageIndicator" class="text-sm text-gray-600 font-medium w-20 text-center"></span><button id="nextDataBtn" onclick="nextDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button></div></div><div class="overflow-x-auto"><table class="min-w-full table-auto"><thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ลำดับ</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HN</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ประเภท</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">คลินิก</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เวลา</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">จัดการ</th></tr></thead><tbody id="dataTable" class="bg-white divide-y divide-gray-200"></tbody></table></div></div></div>`;
+             document.getElementById('reportPage').innerHTML = `<div class="space-y-6">
+                <!-- Filter Section -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800 mb-4 sm:mb-0">🔍 กรองข้อมูล</h2>
+                        <button type="button" onclick="fetchDataFromSheet()" class="flex justify-center gap-2 items-center shadow-xl text-sm bg-gray-50 backdrop-blur-md font-semibold isolation-auto border-gray-50 before:absolute before:w-full before:transition-all before:duration-700 before:hover:w-full before:-left-full before:hover:left-0 before:rounded-full before:bg-emerald-500 hover:text-gray-50 before:-z-10 before:aspect-square before:hover:scale-150 before:hover:duration-700 relative z-10 px-4 py-2 overflow-hidden border-2 rounded-full group">
+                            Refresh
+                            <svg class="w-6 h-6 justify-end group-hover:rotate-90 group-hover:bg-gray-50 text-gray-50 ease-linear duration-300 rounded-full border border-gray-700 group-hover:border-none p-1 rotate-45" viewBox="0 0 16 19" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7 18C7 18.5523 7.44772 19 8 19C8.55228 19 9 18.5523 9 18H7ZM8.70711 0.292893C8.31658 -0.0976311 7.68342 -0.0976311 7.29289 0.292893L0.928932 6.65685C0.538408 7.04738 0.538408 7.68054 0.928932 8.07107C1.31946 8.46159 1.95262 8.46159 2.34315 8.07107L8 2.41421L13.6569 8.07107C14.0474 8.46159 14.6805 8.46159 15.0711 8.07107C15.4616 7.68054 15.4616 7.04738 15.0711 6.65685L8.70711 0.292893ZM9 18L9 1H7L7 18H9Z" class="fill-gray-800 group-hover:fill-gray-800"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่เริ่มต้น</label><input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${weekAgo}"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">วันที่สิ้นสุด</label><input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg" value="${today}"></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">ประเภท Error</label><select id="errorTypeFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${errorTypeOptions}</select></div>
+                        <div><label class="block text-sm font-medium text-gray-700 mb-2">คลินิก</label><select id="clinicFilter" class="w-full px-3 py-2 border border-gray-300 rounded-lg"><option value="all">ทั้งหมด</option>${clinicOptions}</select></div>
+                        <div><button onclick="filterData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">🔍 กรอง</button></div>
+                    </div>
+                </div>
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📊</div><div class="text-2xl font-bold text-blue-600" id="totalErrors">0</div><div class="text-gray-600">จำนวนรวม</div></div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📅</div><div class="text-2xl font-bold text-green-600" id="todayErrors">0</div><div class="text-gray-600">วันนี้</div></div>
+                    <div class="bg-white rounded-xl shadow-lg p-6 text-center"><div class="text-3xl mb-2">📈</div><div class="text-2xl font-bold text-orange-600" id="avgDaily">0</div><div class="text-gray-600">เฉลี่ยต่อวัน</div></div>
+                </div>
+                <!-- Charts -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">📈 กราฟรายวัน</h3>
+                        <button onclick="exportToExcel()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg text-sm">📥 Export Excel</button>
+                    </div>
+                    <div class="h-80"><canvas id="errorChart"></canvas></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">📊 สัดส่วนประเภท Error</h3>
+                        <div class="h-80 w-full max-w-md mx-auto"><canvas id="pieChart"></canvas></div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">🏥 จำนวน Error แยกตามคลินิก</h3>
+                        <div class="h-80 w-full mx-auto"><canvas id="clinicBarChart"></canvas></div>
+                    </div>
+                </div>
+                <!-- Data Table -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">📋 ตารางข้อมูลรายละเอียด</h3>
+                        <div class="flex items-center space-x-2">
+                            <button id="prevDataBtn" onclick="prevDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg></button>
+                            <span id="dataPageIndicator" class="text-sm text-gray-600 font-medium w-20 text-center"></span>
+                            <button id="nextDataBtn" onclick="nextDataPage()" class="p-2 rounded-full bg-gray-200 hover:bg-gray-300 disabled:opacity-50"><svg class="h-4 w-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg></button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-auto">
+                            <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ลำดับ</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">HN</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ประเภท</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">คลินิก</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เวลา</th><th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">จัดการ</th></tr></thead>
+                            <tbody id="dataTable" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
         }
         
-        // --- SCANNER HANDLERS (for proper cleanup) ---
+        // --- Barcode Scanner Logic ---
         const handleScannerProcessed = (result) => {
             const drawingCtx = Quagga.canvas.ctx.overlay;
             const drawingCanvas = Quagga.canvas.dom.overlay;
@@ -246,72 +440,44 @@
                     Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: "green", lineWidth: 2});
                 });
             }
-            if (result && result.box) {
-                Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: "#00F", lineWidth: 2});
-            }
-            if (result && result.codeResult && result.codeResult.code) {
-                Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: 'red', lineWidth: 3});
-            }
+            if (result && result.box) Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: "#00F", lineWidth: 2});
+            if (result && result.codeResult && result.codeResult.code) Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: 'red', lineWidth: 3});
         };
 
         const handleScannerDetected = (result) => {
             const code = result.codeResult.code;
-            
-            // --- Cleanup scanner ---
             Quagga.stop();
             Quagga.offProcessed(handleScannerProcessed);
             Quagga.offDetected(handleScannerDetected);
 
-            // --- Show confirmation ---
             Swal.fire({
-                title: 'สแกนสำเร็จ',
-                text: `หมายเลข HN ที่ได้คือ: ${code}`,
-                icon: 'success',
-                showCancelButton: true,
-                confirmButtonText: 'ยืนยัน',
-                cancelButtonText: 'สแกนใหม่'
+                title: 'สแกนสำเร็จ', text: `หมายเลข HN ที่ได้คือ: ${code}`, icon: 'success',
+                showCancelButton: true, confirmButtonText: 'ยืนยัน', cancelButtonText: 'สแกนใหม่'
             }).then((dialogResult) => {
                  if(dialogResult.isConfirmed) {
                     document.getElementById('hnInput').value = code;
-                    const scannerModal = Swal.getPopup();
-                    if(scannerModal) Swal.close();
+                    Swal.close();
                     showNotification(`บันทึก HN: ${code}`, 'success');
                  } else if (dialogResult.dismiss === Swal.DismissReason.cancel) {
-                    startScanner(); // Re-open scanner if user clicks "สแกนใหม่"
+                    startScanner();
                  }
             });
         };
 
-        // --- SCANNER FUNCTION (REFACTORED) ---
         function startScanner() {
             Swal.fire({
                 title: 'สแกนบาร์โค้ด HN',
-                html: `
-                    <div id="scanner-container">
-                        <div class="scanner-laser"></div>
-                    </div>
-                    <p class="mt-2 text-sm text-gray-600">จัดตำแหน่งบาร์โค้ดให้อยู่ในกรอบ</p>`,
-                showConfirmButton: false,
-                showCancelButton: true,
-                cancelButtonText: 'ยกเลิก',
+                html: `<div id="scanner-container"><div class="scanner-laser"></div></div><p class="mt-2 text-sm text-gray-600">จัดตำแหน่งบาร์โค้ดให้อยู่ในกรอบ</p>`,
+                showConfirmButton: false, showCancelButton: true, cancelButtonText: 'ยกเลิก',
                 didOpen: () => {
                     Quagga.init({
                         inputStream: {
-                            name: "Live",
-                            type: "LiveStream",
-                            target: document.querySelector('#scanner-container'),
-                            constraints: {
-                                width: 640,
-                                height: 480,
-                                facingMode: "environment"
-                            },
+                            name: "Live", type: "LiveStream", target: document.querySelector('#scanner-container'),
+                            constraints: { width: 640, height: 480, facingMode: "environment" },
                         },
                         locator: { patchSize: "medium", halfSample: true },
                         numOfWorkers: navigator.hardwareConcurrency || 4,
-                        decoder: {
-                             readers: ["code_128_reader", "code_39_reader"],
-                             multiple: false
-                        },
+                        decoder: { readers: ["code_128_reader", "code_39_reader"], multiple: false },
                         locate: true
                     }, (err) => {
                         if (err) {
@@ -332,17 +498,33 @@
             });
         }
 
-        // --- DATA ACTIONS ---
+        // --- Data Actions & Modals ---
         function showErrorTypeModal(event) {
             event.preventDefault();
             const hn = document.getElementById('hnInput').value.trim();
             if (!hn) return;
             Swal.fire({
                 title: `บันทึก HN: ${hn}`,
-                html: `<p class="text-gray-600 mb-4">กรุณาเลือกประเภทความคลาดเคลื่อน</p><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><button onclick="showClinicModal('${hn}', 'จำนวนยาไม่ถึงนัด')" class="error-type-btn bg-teal-500">ยาไม่ถึงนัด</button><button onclick="showClinicModal('${hn}', 'เกินวันนัด')" class="error-type-btn bg-pink-500">เกินวันนัด</button></div>`,
+                html: `<p class="text-gray-600 mb-4">กรุณาเลือกประเภทความคลาดเคลื่อน</p><div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><button onclick="showClinicModal('${hn}', 'จำนวนยาไม่ถึงนัด')" class="error-type-btn bg-teal-500">ยาไม่ถึงนัด</button><button onclick="showClinicModal('${hn}', 'เกินวันนัด')" class="error-type-btn bg-pink-500">เกินวันนัด</button><button onclick="showClinicModal('${hn}', 'สั่งยาวิธีใช้ off')" class="error-type-btn bg-indigo-500">สั่งยาวิธีใช้ off</button></div>`,
                 showConfirmButton: false, showCancelButton: true,
                 cancelButtonText: 'ยกเลิก'
             });
+        }
+
+        // --- DATE/TIME HELPER FUNCTIONS ---
+        function formatDateToThaiString(date) {
+            if (!(date instanceof Date) || isNaN(date)) return '';
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear() + 543;
+            return `${day}/${month}/${year}`;
+        }
+
+        function formatTimeToThaiString(date) {
+            if (!(date instanceof Date) || isNaN(date)) return '';
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
         }
 
         function showClinicModal(hn, errorType) {
@@ -354,14 +536,13 @@
                     if (dropdown) dropdown.classList.add('hidden');
                 }
             };
-            
             const keydownListener = (e) => handleDropdownKeys(e);
 
             Swal.fire({
                 title: `เลือกคลินิกสำหรับ HN: ${hn}`,
                 html: `
                     <p class="text-gray-500 mb-4">ประเภท: <strong>${errorType}</strong></p>
-                    <div id="searchable-dropdown-container" class="text-left">
+                    <div id="searchable-dropdown-container" class="text-left" style="margin-bottom: 10rem;">
                          <label for="clinic-search-input" class="block text-sm font-medium text-gray-700 mb-2">ค้นหาคลินิก</label>
                          <div class="clinic-search-container">
                             <input id="clinic-search-input" autocomplete="off" placeholder="พิมพ์เพื่อค้นหาคลินิก...">
@@ -369,23 +550,17 @@
                         </div>
                     </div>`,
                 showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ย้อนกลับ',
+                stopKeydownPropagation: false,
                 didOpen: () => {
                     const popup = Swal.getPopup();
-                    const htmlContainer = Swal.getHtmlContainer();
-
+                    const container = Swal.getHtmlContainer();
                     if (popup) popup.style.overflow = 'visible';
-                    if (htmlContainer) {
-                        htmlContainer.style.overflow = 'visible';
-                        htmlContainer.style.position = 'relative';
-                        htmlContainer.style.zIndex = '2';
-                    }
+                    if (container) container.style.overflow = 'visible';
 
                     const input = document.getElementById('clinic-search-input');
                     input.addEventListener('focus', filterClinics);
                     input.addEventListener('keyup', (e) => { 
-                        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Enter') {
-                            filterClinics();
-                        }
+                        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'Enter') filterClinics();
                     });
                     input.addEventListener('keydown', keydownListener);
                     document.addEventListener('click', outsideClickListener);
@@ -396,15 +571,8 @@
                     document.removeEventListener('click', outsideClickListener);
                     const input = document.getElementById('clinic-search-input');
                     if(input) input.removeEventListener('keydown', keydownListener);
-                    
                     const popup = Swal.getPopup();
-                    const htmlContainer = Swal.getHtmlContainer();
-                    if (popup) popup.style.overflow = 'auto';
-                    if (htmlContainer) {
-                        htmlContainer.style.overflow = 'auto';
-                        htmlContainer.style.position = '';
-                        htmlContainer.style.zIndex = '';
-                    }
+                     if (popup) popup.style.overflow = 'auto';
                 },
                 preConfirm: () => {
                     const clinic = document.getElementById('clinic-search-input').value.trim();
@@ -412,8 +580,11 @@
                     return { hn, errorType, clinic };
                 }
             }).then((result) => {
-                if (result.isConfirmed) { saveError(result.value.hn, result.value.errorType, result.value.clinic); } 
-                else if (result.dismiss === Swal.DismissReason.cancel) { showErrorTypeModal({ preventDefault: () => {} }); }
+                if (result.isConfirmed) { 
+                    saveError(result.value.hn, result.value.errorType, result.value.clinic); 
+                } else if (result.dismiss === Swal.DismissReason.cancel) { 
+                    showErrorTypeModal({ preventDefault: () => {} }); 
+                }
             });
         }
         
@@ -438,29 +609,44 @@
                     Swal.clickConfirm();
                 }
                 return;
-            } else {
-                return;
             }
             updateHighlight(items);
         }
 
         function updateHighlight(items) {
-             for (let i = 0; i < items.length; i++) {
-                items[i].classList.remove('highlighted');
-            }
-            if(items[highlightedIndex]) {
+             for (let i = 0; i < items.length; i++) items[i].classList.remove('highlighted');
+             if(items[highlightedIndex]) {
                 items[highlightedIndex].classList.add('highlighted');
                 items[highlightedIndex].scrollIntoView({ block: 'nearest' });
             }
         }
 
         async function showAddClinicModal() {
+            const existingClinicsHtml = `
+                <div class="text-left mt-4 p-3 bg-gray-50 rounded-lg border max-h-40 overflow-y-auto">
+                    <h4 class="font-semibold text-gray-700 mb-2 text-sm">คลินิกที่มีอยู่แล้ว:</h4>
+                    <ul class="list-disc list-inside text-gray-600 text-sm space-y-1">
+                        ${[...clinics].sort().map(c => `<li>${c}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+
             const { value: newClinic } = await Swal.fire({
-                title: 'เพิ่มคลินิกใหม่', input: 'text',
-                inputLabel: 'ชื่อคลินิก', inputPlaceholder: 'กรอกชื่อคลินิก...',
-                showCancelButton: true, confirmButtonText: 'เพิ่ม', cancelButtonText: 'ยกเลิก',
-                inputValidator: (value) => !value && 'กรุณากรอกชื่อคลินิก'
+                title: 'เพิ่มคลินิกใหม่',
+                input: 'text',
+                inputLabel: 'ชื่อคลินิก',
+                inputPlaceholder: 'กรอกชื่อคลินิก...',
+                html: existingClinicsHtml,
+                showCancelButton: true,
+                confirmButtonText: 'เพิ่ม',
+                cancelButtonText: 'ยกเลิก',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'กรุณากรอกชื่อคลินิก';
+                    }
+                }
             });
+
             if (newClinic && newClinic.trim()) {
                 const trimmedClinic = newClinic.trim();
                 if (clinics.some(c => c.toLowerCase() === trimmedClinic.toLowerCase())) {
@@ -481,18 +667,12 @@
             const input = document.getElementById('clinic-search-input');
             const dropdown = document.getElementById('clinic-dropdown');
             if (!input || !dropdown) return;
-
             highlightedIndex = -1; 
-            
             const filter = input.value.toLowerCase();
             const filteredClinics = clinics.filter(c => c.toLowerCase().includes(filter));
-            
-            if (filteredClinics.length > 0) {
-                 dropdown.innerHTML = filteredClinics.map(c => `<div class="clinic-dropdown-item" onclick="selectClinic('${c}')">${c}</div>`).join('');
-            } else {
-                 dropdown.innerHTML = `<div class="clinic-dropdown-empty">ไม่พบคลินิก</div>`;
-            }
-           
+            dropdown.innerHTML = filteredClinics.length > 0
+                ? filteredClinics.map(c => `<div class="clinic-dropdown-item" onclick="selectClinic('${c}')">${c}</div>`).join('')
+                : `<div class="clinic-dropdown-empty">ไม่พบคลินิก</div>`;
             dropdown.classList.remove('hidden');
         }
 
@@ -503,7 +683,14 @@
         }
         
         function saveError(hn, errorType, clinic) {
-            const now = new Date(), record = { id: now.getTime(), hn, errorType, clinic, timestamp: now.toISOString(), date: now.toLocaleDateString('th-TH'), time: now.toLocaleTimeString('th-TH') };
+            const now = new Date();
+            const record = { 
+                id: now.getTime(), 
+                hn, errorType, clinic, 
+                timestamp: now.toISOString(), 
+                date: formatDateToThaiString(now), 
+                time: formatTimeToThaiString(now) 
+            };
             medErrorData.unshift(record);
             recentRecordsPage = 0;
             updateUIAfterFetch();
@@ -512,8 +699,11 @@
             sendToGoogleSheets('addRecord', record).then(result => {
                 if (!result || result.status !== 'success') {
                     console.error("Sync failed, rolling back.", result);
-                    if (result && result.status === 'duplicate') { Swal.fire({ icon: 'warning', title: 'ข้อมูลซ้ำ', text: `พบข้อมูล Error นี้ของ HN: ${hn} ในวันนี้แล้ว` }); } 
-                    else { showNotification('การบันทึกข้อมูลล้มเหลว', 'error'); }
+                    if (result && result.status === 'duplicate') { 
+                        Swal.fire({ icon: 'warning', title: 'ข้อมูลซ้ำ', text: `พบข้อมูล Error นี้ของ HN: ${hn} ในวันนี้แล้ว` }); 
+                    } else { 
+                        showNotification('การบันทึกข้อมูลล้มเหลว', 'error'); 
+                    }
                     medErrorData = medErrorData.filter(r => r.id !== record.id);
                     updateUIAfterFetch();
                 }
@@ -527,7 +717,7 @@
             const clinicOptionsHtml = clinics.map(c => `<option value="${c}" ${record.clinic === c ? 'selected' : ''}>${c}</option>`).join('');
             Swal.fire({
                 title: 'แก้ไขข้อมูล',
-                html: `<div class="space-y-4 p-2 text-center"><div><label for="swal-hn-input" class="block text-sm font-medium text-gray-700 mb-1">หมายเลข HN</label><input id="swal-hn-input" class="swal2-input w-full" value="${record.hn}"></div><div><label for="swal-error-type-select" class="block text-sm font-medium text-gray-700 mb-1">ประเภท</label><select id="swal-error-type-select" class="swal2-select w-full">${errorOptionsHtml}</select></div><div><label for="swal-clinic-select" class="block text-sm font-medium text-gray-700 mb-1">คลินิก</label><select id="swal-clinic-select" class="swal2-select w-full">${clinicOptionsHtml}</select></div></div>`,
+                html: `<div class="space-y-4 p-2 text-center"><div><label class="block text-sm font-medium text-gray-700 mb-1">หมายเลข HN</label><input id="swal-hn-input" class="swal2-input w-full" value="${record.hn}"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">ประเภท</label><select id="swal-error-type-select" class="swal2-select w-full">${errorOptionsHtml}</select></div><div><label class="block text-sm font-medium text-gray-700 mb-1">คลินิก</label><select id="swal-clinic-select" class="swal2-select w-full">${clinicOptionsHtml}</select></div></div>`,
                 showCancelButton: true, confirmButtonText: 'บันทึก',
                 preConfirm: () => {
                     const newHn = document.getElementById('swal-hn-input').value.trim();
@@ -542,29 +732,37 @@
                     updateUIAfterFetch();
                     showNotification('กำลังแก้ไข...', 'info');
                     sendToGoogleSheets('editRecord', { id: recordId, hn: newHn, errorType: newErrorType, clinic: newClinic })
-                        .then(success => { if (success) { showNotification('แก้ไขสำเร็จ', 'success'); fetchDataFromSheet(); } });
+                        .then(res => { if (res && res.status === 'success') { showNotification('แก้ไขสำเร็จ', 'success'); fetchDataFromSheet(); } });
                 }
             });
         }
         
         function deleteRecord(recordId) {
-            Swal.fire({ title: 'ยืนยันการลบ', text: "ข้อมูลจะถูกลบจาก Google Sheet!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย!' }).then((result) => {
+            Swal.fire({ title: 'ยืนยันการลบ', text: "ข้อมูลจะถูกลบอย่างถาวร!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย!' }).then((result) => {
                 if (result.isConfirmed) {
                     const originalData = [...medErrorData];
                     medErrorData = medErrorData.filter(r => r.id !== recordId);
                     updateUIAfterFetch();
                     showNotification('กำลังลบ...', 'info');
-                    sendToGoogleSheets('deleteRecord', { id: recordId }).then(success => {
-                        if (success) { showNotification('ลบสำเร็จ', 'success'); fetchDataFromSheet(); } 
-                        else { medErrorData = originalData; updateUIAfterFetch(); }
+                    sendToGoogleSheets('deleteRecord', { id: recordId }).then(res => {
+                        if (res && res.status === 'success') { 
+                            showNotification('ลบสำเร็จ', 'success'); 
+                            fetchDataFromSheet(); 
+                        } else { 
+                            medErrorData = originalData; 
+                            updateUIAfterFetch(); 
+                        }
                     });
                 }
             });
         }
 
+        // --- UI Updates & Pagination ---
         function updateUIAfterFetch() {
             updateRecentRecords();
-            if (document.getElementById('reportPage').style.display === 'block') { loadReportData(); }
+            if (document.getElementById('reportPage').style.display === 'block') { 
+                loadReportData(); 
+            }
         }
 
         function prevRecentPage() { if (recentRecordsPage > 0) { recentRecordsPage--; updateRecentRecords(); } }
@@ -575,19 +773,39 @@
             if (!container) return;
             const totalItems = medErrorData.length;
             const totalPages = Math.ceil(totalItems / RECENT_ITEMS_PER_PAGE) || 1;
-            if (recentRecordsPage >= totalPages) { recentRecordsPage = totalPages > 0 ? totalPages - 1 : 0; }
+            if (recentRecordsPage >= totalPages) recentRecordsPage = Math.max(0, totalPages - 1);
+            
             const start = recentRecordsPage * RECENT_ITEMS_PER_PAGE;
             const pageItems = medErrorData.slice(start, start + RECENT_ITEMS_PER_PAGE);
+            
             const pageIndicator = document.getElementById('recentPageIndicator');
             if(pageIndicator) pageIndicator.textContent = totalItems > 0 ? `หน้า ${recentRecordsPage + 1} / ${totalPages}` : 'ไม่มีข้อมูล';
+            
             const prevBtn = document.getElementById('prevRecentBtn');
             const nextBtn = document.getElementById('nextRecentBtn');
             if(prevBtn) prevBtn.disabled = recentRecordsPage === 0;
             if(nextBtn) nextBtn.disabled = recentRecordsPage >= totalPages - 1;
-            if (pageItems.length === 0) { container.innerHTML = '<p class="text-gray-500 text-center py-4">ยังไม่มีข้อมูล</p>'; return; }
-            container.innerHTML = pageItems.map(record => `<div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg"><div><span class="font-medium text-gray-800">HN: ${record.hn}</span><p class="text-sm text-blue-600">${record.errorType}</p><p class="text-xs text-gray-500">${record.clinic || ''}</p></div><div class="flex items-center space-x-2"><div class="text-sm text-gray-600 text-right">${record.date}<br>${record.time.substring(0,5)}</div><button onclick="editRecord(${record.id})" class="group flex h-9 w-9 items-center justify-center rounded-xl border-2 border-indigo-700 bg-indigo-400 hover:bg-indigo-600"><div class="relative flex h-full w-full items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 48 48" height="24" width="24" class="absolute z-10"><path d="M9.7 38.3q-1.45 0-2.475-1.025Q6.2 36.25 6.2 34.8V9.7q0-1.45 1.025-2.475Q8.25 6.2 9.7 6.2h18.6L41.8 19.7v15.1q0 1.45-1.025 2.475Q39.75 38.3 38.3 38.3Zm0-3h28.6V20.8l-11.1-11.1H9.7v28.6Zm11.1-6.45 8.9-8.9-2.15-2.1-8.9 8.9ZM9.7 35.3V9.7v25.6Z"/></svg><svg fill="yellow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="absolute h-6 w-6 text-white z-20 hidden group-hover:block transition-all group-hover:scale-125"><path clip-rule="evenodd" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" fill-rule="evenodd"></path></svg></div></button><button onclick="deleteRecord(${r.id})" class="delete-button group flex h-9 w-9 items-center justify-center rounded-xl border-2 border-red-800 bg-red-400 hover:bg-red-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20" class="text-white"><g class="trash-lid"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v1.5H3.75V6z" /></g><g><path stroke-linecap="round" stroke-linejoin="round" d="M14.25 7.5L13.5 18M10.5 7.5L9.75 18" /><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 6v12.75a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25V6h-13.5z" /></g></svg></button></div></div>`).join('');
+
+            if (pageItems.length === 0) { 
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">ยังไม่มีข้อมูล</p>'; 
+                return; 
+            }
+            container.innerHTML = pageItems.map(record => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div>
+                        <span class="font-medium text-gray-800">HN: ${record.hn}</span>
+                        <p class="text-sm text-blue-600">${record.errorType}</p>
+                        <p class="text-xs text-gray-500">${record.clinic || ''}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="text-sm text-gray-600 text-right">${record.date}<br>${record.time}</div>
+                        <button onclick="editRecord(${record.id})" class="p-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                        <button onclick="deleteRecord(${record.id})" class="p-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                    </div>
+                </div>`).join('');
         }
 
+        // --- Report Page Logic ---
         function loadReportData() { dataTablePage = 0; filterData(); }
         function filterData() {
             const startDate = document.getElementById('startDate').value;
@@ -595,70 +813,180 @@
             const errorType = document.getElementById('errorTypeFilter').value;
             const clinic = document.getElementById('clinicFilter').value;
             let filtered = medErrorData;
-            if (startDate && endDate) { const start = new Date(startDate).setHours(0,0,0,0); const end = new Date(endDate).setHours(23,59,59,999); filtered = filtered.filter(r => new Date(r.timestamp) >= start && new Date(r.timestamp) <= end); }
-            if (errorType !== 'all') { filtered = filtered.filter(r => r.errorType === errorType); }
-            if (clinic !== 'all') { filtered = filtered.filter(r => r.clinic === clinic); }
+            
+            if (startDate && endDate) { 
+                const start = new Date(startDate).setHours(0,0,0,0); 
+                const end = new Date(endDate).setHours(23,59,59,999); 
+                filtered = filtered.filter(r => {
+                    const recordDate = new Date(r.timestamp);
+                    return recordDate >= start && recordDate <= end;
+                });
+            }
+            if (errorType !== 'all') filtered = filtered.filter(r => r.errorType === errorType);
+            if (clinic !== 'all') filtered = filtered.filter(r => r.clinic === clinic);
+
             currentFilteredData = filtered;
             dataTablePage = 0;
-            updateSummaryCards(currentFilteredData); updateChart(currentFilteredData); updatePieChart(currentFilteredData); updateDataTable();
+            updateSummaryCards(currentFilteredData); 
+            updateChart(currentFilteredData); 
+            updatePieChart(currentFilteredData);
+            updateClinicChart(currentFilteredData);
+            updateDataTable();
         }
 
         function prevDataPage() { if (dataTablePage > 0) { dataTablePage--; updateDataTable(); } }
         function nextDataPage() { const totalPages = Math.ceil(currentFilteredData.length / DATA_TABLE_ITEMS_PER_PAGE); if (dataTablePage < totalPages - 1) { dataTablePage++; updateDataTable(); } }
-        function updateSummaryCards(data) { document.getElementById('totalErrors').textContent = data.length; const today = new Date().toLocaleDateString('th-TH'); document.getElementById('todayErrors').textContent = data.filter(r => r.date === today).length; const days = new Set(data.map(r => r.date)).size; document.getElementById('avgDaily').textContent = days > 0 ? (data.length / days).toFixed(1) : 0; }
+        
+        function updateSummaryCards(data) { 
+            const totalErrors = document.getElementById('totalErrors');
+            if(totalErrors) totalErrors.textContent = data.length;
+            
+            const today = formatDateToThaiString(new Date());
+            const todayErrors = document.getElementById('todayErrors');
+            if(todayErrors) todayErrors.textContent = data.filter(r => r.date === today).length;
+            
+            const days = new Set(data.map(r => r.date)).size; 
+            const avgDaily = document.getElementById('avgDaily');
+            if(avgDaily) avgDaily.textContent = days > 0 ? (data.length / days).toFixed(1) : 0; 
+        }
+
         function updateChart(data) {
             const ctx = document.getElementById('errorChart').getContext('2d');
             const dailyData = data.reduce((acc, {date}) => { acc[date] = (acc[date] || 0) + 1; return acc; }, {});
-            const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
+            const sortedDates = Object.keys(dailyData).sort((a, b) => {
+                const [dayA, monthA, yearA] = a.split('/');
+                const [dayB, monthB, yearB] = b.split('/');
+                return new Date(`${yearA - 543}-${monthA}-${dayA}`) - new Date(`${yearB - 543}-${monthB}-${dayB}`);
+            });
             if (chart) chart.destroy();
             chart = new Chart(ctx, { type: 'line', data: { labels: sortedDates, datasets: [{ label: 'จำนวน Med Error', data: sortedDates.map(date => dailyData[date]), borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 3, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
         }
+        
         function updatePieChart(data) {
             const pieCtx = document.getElementById('pieChart')?.getContext('2d');
             if (!pieCtx) return;
             const errorCounts = data.reduce((acc, { errorType }) => { acc[errorType] = (acc[errorType] || 0) + 1; return acc; }, {});
-            const labels = Object.keys(errorCounts), counts = Object.values(errorCounts);
-            const backgroundColors = ['#4A90E2', '#50E3C2', '#F5A623', '#D0021B', '#BD10E0', '#7ED321', '#9013FE', '#F8E71C', '#FF4081', '#2962FF'];
+            const labels = Object.keys(errorCounts);
+            const counts = Object.values(errorCounts);
+            const backgroundColors = ['#4A90E2', '#50E3C2', '#F5A623', '#D0021B', '#BD10E0', '#7ED321'];
             if (pieChart) pieChart.destroy();
-            pieChart = new Chart(pieCtx, { type: 'pie', data: { labels: labels, datasets: [{ label: 'จำนวน', data: counts, backgroundColor: backgroundColors, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 15, font: { family: "'Sarabun', 'Noto Sans Thai', sans-serif" } } }, datalabels: { formatter: (value, ctx) => { const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); if (total === 0) return '0%'; return ((value / total) * 100).toFixed(1) + '%'; }, color: '#fff', font: { weight: 'bold', family: "'Sarabun', 'Noto Sans Thai', sans-serif" } } } } });
+            pieChart = new Chart(pieCtx, { type: 'pie', data: { labels: labels, datasets: [{ label: 'จำนวน', data: counts, backgroundColor: backgroundColors, hoverOffset: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { padding: 15, font: { family: "'Sarabun', 'Noto Sans Thai', sans-serif" } } }, datalabels: { formatter: (value, ctx) => { const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); return total === 0 ? '0%' : ((value / total) * 100).toFixed(1) + '%'; }, color: '#fff', font: { weight: 'bold', family: "'Sarabun', 'Noto Sans Thai', sans-serif" } } } } });
         }
+
+        function updateClinicChart(data) {
+            const barCtx = document.getElementById('clinicBarChart')?.getContext('2d');
+            if (!barCtx) return;
+
+            const clinicCounts = data.reduce((acc, { clinic }) => {
+                if (clinic) {
+                    acc[clinic] = (acc[clinic] || 0) + 1;
+                }
+                return acc;
+            }, {});
+
+            const sortedClinics = Object.entries(clinicCounts).sort(([, a], [, b]) => b - a);
+            const labels = sortedClinics.map(([clinic]) => clinic);
+            const counts = sortedClinics.map(([, count]) => count);
+            const backgroundColors = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#6366F1', '#FBBF24', '#22C55E', '#D946EF'];
+
+            if (clinicChart) clinicChart.destroy();
+
+            clinicChart = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'จำนวน Error',
+                        data: counts,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Horizontal bar chart for better readability of clinic names
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1 
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'right',
+                            color: '#374151',
+                            font: {
+                                weight: 'bold',
+                                family: "'Sarabun', 'Noto Sans Thai', sans-serif"
+                            },
+                             formatter: (value) => value > 0 ? value : ''
+                        }
+                    }
+                }
+            });
+        }
+
         function updateDataTable() {
             const tableBody = document.getElementById('dataTable');
             if (!tableBody) return;
             const totalItems = currentFilteredData.length;
             const totalPages = Math.ceil(totalItems / DATA_TABLE_ITEMS_PER_PAGE) || 1;
-            if (dataTablePage >= totalPages) { dataTablePage = totalItems > 0 ? totalPages - 1 : 0; }
+            if (dataTablePage >= totalPages) dataTablePage = Math.max(0, totalPages - 1);
+            
             const start = dataTablePage * DATA_TABLE_ITEMS_PER_PAGE;
             const pageItems = currentFilteredData.slice(start, start + DATA_TABLE_ITEMS_PER_PAGE);
+            
             const pageIndicator = document.getElementById('dataPageIndicator');
             if(pageIndicator) pageIndicator.textContent = totalItems > 0 ? `หน้า ${dataTablePage + 1} / ${totalPages}` : 'ไม่มีข้อมูล';
+            
             const prevBtn = document.getElementById('prevDataBtn');
             const nextBtn = document.getElementById('nextDataBtn');
             if(prevBtn) prevBtn.disabled = dataTablePage === 0;
             if(nextBtn) nextBtn.disabled = dataTablePage >= totalPages - 1;
-            if (pageItems.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">ไม่มีข้อมูลในช่วงเวลาที่เลือก</td></tr>`; return; }
-            tableBody.innerHTML = pageItems.map((r, index) => `<tr class="hover:bg-gray-50"><td class="px-4 py-4 text-sm text-gray-900">${start + index + 1}</td><td class="px-4 py-4 text-sm font-medium text-gray-900">${r.hn}</td><td class="px-4 py-4 text-sm text-blue-800">${r.errorType}</td><td class="px-4 py-4 text-sm text-gray-500">${r.clinic || ''}</td><td class="px-4 py-4 text-sm text-gray-900">${r.date}</td><td class="px-4 py-4 text-sm text-gray-900">${r.time}</td><td class="px-4 py-4 text-sm"><div class="flex items-center space-x-2"><button onclick="editRecord(${r.id})" class="group relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border-2 border-indigo-700 bg-indigo-400 hover:bg-indigo-600"><div class="relative flex h-full w-full items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 48 48" height="24" width="24" class="absolute z-10"><path d="M9.7 38.3q-1.45 0-2.475-1.025Q6.2 36.25 6.2 34.8V9.7q0-1.45 1.025-2.475Q8.25 6.2 9.7 6.2h18.6L41.8 19.7v15.1q0 1.45-1.025 2.475Q39.75 38.3 38.3 38.3Zm0-3h28.6V20.8l-11.1-11.1H9.7v28.6Zm11.1-6.45 8.9-8.9-2.15-2.1-8.9 8.9ZM9.7 35.3V9.7v25.6Z"/></svg><svg fill="yellow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="absolute h-6 w-6 text-white z-20 hidden group-hover:block transition-all group-hover:scale-125"><path clip-rule="evenodd" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" fill-rule="evenodd"></path></svg></div></button><button onclick="deleteRecord(${r.id})" class="delete-button group flex h-9 w-9 items-center justify-center rounded-xl border-2 border-red-800 bg-red-400 hover:bg-red-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20" class="text-white"><g class="trash-lid"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v1.5H3.75V6z" /></g><g><path stroke-linecap="round" stroke-linejoin="round" d="M14.25 7.5L13.5 18M10.5 7.5L9.75 18" /><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 6v12.75a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25V6h-13.5z" /></g></svg></button></div></td></tr>`).join('');
+            
+            if (pageItems.length === 0) { 
+                tableBody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">ไม่มีข้อมูลในช่วงเวลาที่เลือก</td></tr>`; 
+                return; 
+            }
+            tableBody.innerHTML = pageItems.map((r, index) => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-4 text-sm text-gray-900">${start + index + 1}</td>
+                    <td class="px-4 py-4 text-sm font-medium text-gray-900">${r.hn}</td>
+                    <td class="px-4 py-4 text-sm text-blue-800">${r.errorType}</td>
+                    <td class="px-4 py-4 text-sm text-gray-500">${r.clinic || ''}</td>
+                    <td class="px-4 py-4 text-sm text-gray-900">${r.date}</td>
+                    <td class="px-4 py-4 text-sm text-gray-900">${r.time}</td>
+                    <td class="px-4 py-4 text-sm">
+                        <div class="flex items-center space-x-2">
+                             <button onclick="editRecord(${r.id})" class="p-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg></button>
+                            <button onclick="deleteRecord(${r.id})" class="p-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                        </div>
+                    </td>
+                </tr>`).join('');
         }
         
+        // --- API Communication ---
         async function sendToGoogleSheets(action, data) {
-            // Using URLSearchParams for a more robust payload delivery to Google Apps Script
             const payload = new URLSearchParams();
             payload.append('action', action);
             payload.append('data', JSON.stringify(data));
 
             try {
                 const response = await fetch(scriptURL, { 
-                    method: 'POST', 
-                    body: payload,
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
+                    method: 'POST', body: payload,
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 });
                 const result = await response.json(); 
                 if (result.status !== 'success' && result.status !== 'duplicate') { 
                     showNotification(result.message || 'เกิดข้อผิดพลาดกับ Google Sheets', 'error'); 
                     console.error('GS Error:', result.message); 
-                    return result; 
                 }
                 return result;
             } catch (error) { 
@@ -668,16 +996,34 @@
             }
         }
 
+        // --- Utility Functions ---
         function exportToExcel() {
-            let filtered = [...currentFilteredData];
             let csvContent = "ลำดับ,HN,ประเภท,คลินิก,วันที่,เวลา\n";
-            filtered.forEach((r, i) => { csvContent += `${i + 1},"${r.hn}","${r.errorType}","${r.clinic || ''}",${r.date},"${r.time}"\n`; });
+            currentFilteredData.forEach((r, i) => { 
+                csvContent += `${i + 1},"${r.hn}","${r.errorType}","${r.clinic || ''}","${r.date}","${r.time}"\n`; 
+            });
             const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `med_error_report_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            const link = document.createElement('a'); 
+            link.href = URL.createObjectURL(blob); 
+            link.download = `med_error_report_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link); 
+            link.click(); 
+            document.body.removeChild(link);
         }
-        function showLoading(isLoading) { document.getElementById('loadingOverlay').style.display = isLoading ? 'flex' : 'none'; }
-        function showNotification(message, type = 'info') { const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true, didOpen: (t) => { t.addEventListener('mouseenter', Swal.stopTimer); t.addEventListener('mouseleave', Swal.resumeTimer); } }); Toast.fire({ icon: type, title: message }); }
+
+        function showLoading(isLoading) { 
+            const overlay = document.getElementById('loadingOverlay');
+            if(overlay) overlay.style.display = isLoading ? 'flex' : 'none'; 
+        }
+
+        function showNotification(message, type = 'info') { 
+            const Toast = Swal.mixin({ 
+                toast: true, position: 'top-end', showConfirmButton: false, 
+                timer: 3000, timerProgressBar: true, 
+                didOpen: (t) => { t.addEventListener('mouseenter', Swal.stopTimer); t.addEventListener('mouseleave', Swal.resumeTimer); } 
+            }); 
+            Toast.fire({ icon: type, title: message }); 
+        }
     </script>
 </body>
 </html>
