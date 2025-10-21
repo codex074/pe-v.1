@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OPD - PE จำนวนยาไม่สัมพันธ์กับนัด</title>
-    <link rel="icon" href="icons/icon-192x192.png" type="image/png" />
+    <title>ระบบเก็บข้อมูล Med Error - โรงพยาบาลอุตรดิตถ์</title>
 
     <!-- PWA Manifest & Icons -->
     <link rel="manifest" href="manifest.json">
@@ -640,15 +639,35 @@
             if (pageItems.length === 0) { tableBody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">ไม่มีข้อมูลในช่วงเวลาที่เลือก</td></tr>`; return; }
             tableBody.innerHTML = pageItems.map((r, index) => `<tr class="hover:bg-gray-50"><td class="px-4 py-4 text-sm text-gray-900">${start + index + 1}</td><td class="px-4 py-4 text-sm font-medium text-gray-900">${r.hn}</td><td class="px-4 py-4 text-sm text-blue-800">${r.errorType}</td><td class="px-4 py-4 text-sm text-gray-500">${r.clinic || ''}</td><td class="px-4 py-4 text-sm text-gray-900">${r.date}</td><td class="px-4 py-4 text-sm text-gray-900">${r.time}</td><td class="px-4 py-4 text-sm"><div class="flex items-center space-x-2"><button onclick="editRecord(${r.id})" class="group relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border-2 border-indigo-700 bg-indigo-400 hover:bg-indigo-600"><div class="relative flex h-full w-full items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 48 48" height="24" width="24" class="absolute z-10"><path d="M9.7 38.3q-1.45 0-2.475-1.025Q6.2 36.25 6.2 34.8V9.7q0-1.45 1.025-2.475Q8.25 6.2 9.7 6.2h18.6L41.8 19.7v15.1q0 1.45-1.025 2.475Q39.75 38.3 38.3 38.3Zm0-3h28.6V20.8l-11.1-11.1H9.7v28.6Zm11.1-6.45 8.9-8.9-2.15-2.1-8.9 8.9ZM9.7 35.3V9.7v25.6Z"/></svg><svg fill="yellow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="absolute h-6 w-6 text-white z-20 hidden group-hover:block transition-all group-hover:scale-125"><path clip-rule="evenodd" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" fill-rule="evenodd"></path></svg></div></button><button onclick="deleteRecord(${r.id})" class="delete-button group flex h-9 w-9 items-center justify-center rounded-xl border-2 border-red-800 bg-red-400 hover:bg-red-600 transition-colors"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="20" height="20" class="text-white"><g class="trash-lid"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h12A2.25 2.25 0 0120.25 6v1.5H3.75V6z" /></g><g><path stroke-linecap="round" stroke-linejoin="round" d="M14.25 7.5L13.5 18M10.5 7.5L9.75 18" /><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 6v12.75a2.25 2.25 0 002.25 2.25h9a2.25 2.25 0 002.25-2.25V6h-13.5z" /></g></svg></button></div></td></tr>`).join('');
         }
+        
         async function sendToGoogleSheets(action, data) {
-            const formData = new FormData(); formData.append('action', action); formData.append('data', JSON.stringify(data));
+            // Using URLSearchParams for a more robust payload delivery to Google Apps Script
+            const payload = new URLSearchParams();
+            payload.append('action', action);
+            payload.append('data', JSON.stringify(data));
+
             try {
-                const response = await fetch(scriptURL, { method: 'POST', body: formData });
+                const response = await fetch(scriptURL, { 
+                    method: 'POST', 
+                    body: payload,
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                });
                 const result = await response.json(); 
-                if (result.status !== 'success' && result.status !== 'duplicate') { showNotification(result.message || 'เกิดข้อผิดพลาดกับ Google Sheets', 'error'); console.error('GS Error:', result.message); return result; }
+                if (result.status !== 'success' && result.status !== 'duplicate') { 
+                    showNotification(result.message || 'เกิดข้อผิดพลาดกับ Google Sheets', 'error'); 
+                    console.error('GS Error:', result.message); 
+                    return result; 
+                }
                 return result;
-            } catch (error) { showNotification('ไม่สามารถเชื่อมต่อ Google Sheets ได้', 'error'); console.error('Fetch Error:', error); return { status: 'error', message: error.message }; }
+            } catch (error) { 
+                showNotification('ไม่สามารถเชื่อมต่อ Google Sheets ได้', 'error'); 
+                console.error('Fetch Error:', error); 
+                return { status: 'error', message: error.message }; 
+            }
         }
+
         function exportToExcel() {
             let filtered = [...currentFilteredData];
             let csvContent = "ลำดับ,HN,ประเภท,คลินิก,วันที่,เวลา\n";
